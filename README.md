@@ -10,7 +10,7 @@ Repositorio: <https://github.com/xino00/Pokedex_infecciosas>
 
 ## Que contiene
 
-`POKEDEX.html` es una aplicacion React autocontenida en un unico archivo HTML. No necesita compilacion ni instalacion local.
+`index.html` es una aplicacion React autocontenida en un unico archivo HTML. No necesita compilacion ni instalacion local.
 
 La pagina incluye:
 
@@ -24,7 +24,7 @@ La pagina incluye:
 
 ## Uso local
 
-Abre `POKEDEX.html` en el navegador.
+Abre `index.html` en el navegador.
 
 La aplicacion carga React 18 desde CDN:
 
@@ -42,14 +42,14 @@ python3 -m http.server
 Y abrir:
 
 ```text
-http://localhost:8000/POKEDEX.html
+http://localhost:8000/
 ```
 
 ## Estructura
 
 ```text
 .
-├── POKEDEX.html
+├── index.html
 └── README.md
 ```
 
