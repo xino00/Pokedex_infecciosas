@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROADEX · Atlas visual de antimicrobianos</title>
+  <meta name="description" content="Atlas visual React de espectro antimicrobiano, gramnegativos resistentes y trampas PROA para guardia y estudio." />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <style>
+    :root{
+      color-scheme: light;
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --panel-2:#f9fbff;
+      --ink:#172033;
+      --muted:#667085;
+      --muted-2:#8a95a8;
+      --line:#dfe6f3;
+      --line-strong:#cbd6e8;
+      --brand:#2757d8;
+      --brand-2:#123fae;
+      --violet:#7c3aed;
+      --teal:#0f766e;
+      --green:#17803d;
+      --amber:#b7791f;
+      --red:#c03535;
+      --blue:#2463eb;
+      --sky:#0ea5e9;
+      --shadow:0 24px 60px rgba(26,39,70,.11);
+      --shadow-soft:0 12px 30px rgba(26,39,70,.08);
+      --radius:24px;
+      --radius-sm:16px;
+      --mono:"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme: dark;
+      --bg:#0b1020;
+      --panel:#11182a;
+      --panel-2:#0d1426;
+      --ink:#eef4ff;
+      --muted:#a8b3c7;
+      --muted-2:#7f8ca3;
+      --line:#24304a;
+      --line-strong:#35415c;
+      --brand:#86a7ff;
+      --brand-2:#b7c7ff;
+      --violet:#a78bfa;
+      --teal:#5eead4;
+      --green:#70e28f;
+      --amber:#f6c453;
+      --red:#ff7b7b;
+      --blue:#8bb0ff;
+      --sky:#67e8f9;
+      --shadow:0 24px 60px rgba(0,0,0,.42);
+      --shadow-soft:0 12px 30px rgba(0,0,0,.26);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:
+      radial-gradient(circle at 4% 0%, rgba(39,87,216,.14), transparent 26rem),
+      radial-gradient(circle at 85% 8%, rgba(20,184,166,.11), transparent 24rem),
+      radial-gradient(circle at 70% 90%, rgba(124,58,237,.10), transparent 27rem),
+      var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
+    button,input,select{font:inherit}
+    a{color:inherit}
+    .app-shell{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+    .sidebar{position:sticky;top:0;height:100vh;padding:22px 18px;background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.55));border-right:1px solid var(--line);backdrop-filter:blur(18px);overflow:auto;z-index:20}
+    [data-theme="dark"] .sidebar{background:linear-gradient(180deg,rgba(17,24,42,.82),rgba(17,24,42,.55))}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+    .brand-mark{width:48px;height:48px;border-radius:18px;background:linear-gradient(135deg,var(--brand),var(--teal));color:white;display:grid;place-items:center;font-weight:950;letter-spacing:.04em;box-shadow:var(--shadow-soft)}
+    .brand strong{display:block;font-size:1.08rem;letter-spacing:-.03em}
+    .brand span:last-child{display:block;font-size:.8rem;color:var(--muted);margin-top:1px}
+    .search-panel{display:grid;gap:10px;margin:18px 0}
+    .search-box{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:11px 12px;box-shadow:0 4px 14px rgba(26,39,70,.04)}
+    .search-box input{border:0;background:transparent;outline:0;width:100%;color:var(--ink)}
+    .search-box input::placeholder{color:var(--muted-2)}
+    .nav-list{display:grid;gap:8px;margin-top:16px}
+    .nav-btn{border:1px solid transparent;background:transparent;color:var(--muted);text-align:left;border-radius:16px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.18s ease}
+    .nav-btn:hover{background:var(--panel-2);color:var(--ink);border-color:var(--line)}
+    .nav-btn.active{background:linear-gradient(135deg,rgba(39,87,216,.13),rgba(15,118,110,.09));color:var(--ink);border-color:rgba(39,87,216,.2);font-weight:800}
+    .nav-ico{width:27px;height:27px;border-radius:10px;background:var(--panel);display:grid;place-items:center;border:1px solid var(--line);font-size:.9rem}
+    .side-card{margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow-soft)}
+    .side-card strong{font-size:.86rem;display:block;margin-bottom:7px}
+    .side-card p{font-size:.78rem;color:var(--muted);margin:0}
+    .theme-btn{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:10px 12px;cursor:pointer}
+    .main{min-width:0;padding:30px 36px 60px}
+    .hero{display:grid;grid-template-columns:minmax(0,1.2fr) 420px;gap:22px;margin-bottom:24px;align-items:stretch}
+    .hero-card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:32px;background:
+      linear-gradient(135deg,rgba(39,87,216,.12),rgba(20,184,166,.07)),var(--panel);box-shadow:var(--shadow);padding:32px}
+    .hero-card::after{content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(39,87,216,.24),transparent 68%);pointer-events:none}
+    .eyebrow{font-size:.77rem;text-transform:uppercase;letter-spacing:.14em;color:var(--brand);font-weight:900}
+    h1{font-size:clamp(2.45rem,4.6vw,5.1rem);line-height:.92;margin:12px 0 14px;letter-spacing:-.075em;max-width:980px}
+    .lead{font-size:1.08rem;color:var(--muted);max-width:72ch;margin:0}
+    .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+    .chip,.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;background:var(--panel);padding:7px 10px;color:var(--muted);font-size:.78rem;font-weight:750;white-space:nowrap}
+    .chip strong{color:var(--ink)}
+    .stat-board{display:grid;gap:12px}
+    .stat-card{border:1px solid var(--line);border-radius:24px;background:var(--panel);padding:18px;box-shadow:var(--shadow-soft);position:relative;overflow:hidden}
+    .stat-card b{font-size:1.85rem;letter-spacing:-.06em;display:block;line-height:1;color:var(--ink)}
+    .stat-card span{font-size:.8rem;color:var(--muted)}
+    .stat-card em{position:absolute;right:16px;top:15px;font-style:normal;font-size:1.35rem;opacity:.6}
+    .section{display:none;animation:rise .24s ease both}
+    .section.active{display:block}
+    @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .section-head{display:flex;justify-content:space-between;gap:20px;align-items:end;margin:36px 0 16px}
+    .section-head h2{font-size:2rem;letter-spacing:-.055em;line-height:1;margin:0}
+    .section-head p{margin:7px 0 0;color:var(--muted);max-width:74ch}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .segmented{display:inline-flex;gap:4px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px}
+    .segmented button{border:0;background:transparent;border-radius:999px;color:var(--muted);padding:8px 12px;cursor:pointer;font-size:.82rem;font-weight:800}
+    .segmented button.active{background:var(--ink);color:var(--panel)}
+    .grid{display:grid;gap:16px}
+    .organism-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .antibiotic-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .mechanism-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .pokedex-card{border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--panel-2));border-radius:26px;padding:16px;box-shadow:var(--shadow-soft);min-height:260px;display:flex;flex-direction:column;position:relative;overflow:hidden;cursor:pointer;transition:.18s ease}
+    .pokedex-card:hover{transform:translateY(-3px);border-color:var(--line-strong);box-shadow:var(--shadow)}
+    .pokedex-card::before{content:"";position:absolute;inset:auto -60px -70px auto;width:180px;height:180px;border-radius:50%;opacity:.12;background:var(--accent,var(--brand))}
+    .pokedex-top{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:14px;position:relative}
+    .dex-id{font-family:var(--mono);font-size:.75rem;color:var(--muted-2);font-weight:800}
+    .type-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:rgba(39,87,216,.1);color:var(--accent,var(--brand));font-size:.72rem;font-weight:900;border:1px solid rgba(39,87,216,.12)}
+    .pokedex-icon{width:58px;height:58px;border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(255,255,255,.34));border:1px solid var(--line);display:grid;place-items:center;font-size:1.65rem;box-shadow:0 10px 20px rgba(26,39,70,.08)}
+    [data-theme="dark"] .pokedex-icon{background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
+    .pokedex-card h3{font-size:1.15rem;line-height:1.05;letter-spacing:-.04em;margin:0 0 8px;position:relative}
+    .pokedex-card p{font-size:.86rem;color:var(--muted);margin:0 0 12px;position:relative}
+    .mini-list{display:grid;gap:6px;margin-top:auto;position:relative}
+    .mini-row{display:grid;grid-template-columns:72px 1fr;gap:8px;font-size:.78rem;border-top:1px solid var(--line);padding-top:7px}
+    .mini-row b{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-2)}
+    .mini-row span{color:var(--ink);font-weight:650}
+    .accent-positive{--accent:var(--violet)}
+    .accent-negative{--accent:var(--teal)}
+    .accent-anaerobe{--accent:var(--amber)}
+    .accent-atypical{--accent:var(--sky)}
+    .accent-red{--accent:var(--red)}
+    .accent-green{--accent:var(--green)}
+    .accent-blue{--accent:var(--blue)}
+    .accent-amber{--accent:var(--amber)}
+    .detail-drawer{position:fixed;right:24px;top:24px;bottom:24px;width:min(560px,calc(100vw - 48px));z-index:50;border:1px solid var(--line);background:rgba(255,255,255,.88);backdrop-filter:blur(18px);border-radius:30px;box-shadow:var(--shadow);padding:22px;overflow:auto;animation:slideIn .22s ease both}
+    [data-theme="dark"] .detail-drawer{background:rgba(17,24,42,.9)}
+    @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+    .drawer-close{position:sticky;top:0;float:right;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);width:38px;height:38px;cursor:pointer;z-index:2}
+    .drawer-title{font-size:2rem;line-height:.95;letter-spacing:-.06em;margin:24px 0 8px}
+    .drawer-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+    .info-block{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:14px;margin:10px 0}
+    .info-block h4{margin:0 0 8px;font-size:.78rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted-2)}
+    .info-block ul{margin:0;padding-left:19px;color:var(--muted)}
+    .info-block li{margin:5px 0}
+    .map-row{display:grid;grid-template-columns:160px minmax(0,1fr);gap:16px;margin:14px 0}
+    .morph-lane{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:14px;min-height:132px}
+    .morph-lane h3{margin:0 0 9px;font-size:1rem}
+    .lane-items{display:flex;gap:8px;flex-wrap:wrap}
+    .lane-chip{border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:var(--panel-2);font-weight:800;font-size:.8rem;color:var(--ink);cursor:pointer}
+    .lane-chip:hover{border-color:var(--brand);color:var(--brand)}
+    .coverage-matrix{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:24px;background:var(--panel);box-shadow:var(--shadow-soft)}
+    .coverage-matrix th,.coverage-matrix td{padding:10px 9px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:.82rem;text-align:center;vertical-align:middle}
+    .coverage-matrix th{background:var(--panel-2);color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;position:sticky;top:0;z-index:1}
+    .coverage-matrix td:first-child,.coverage-matrix th:first-child{text-align:left;min-width:210px;font-weight:900;color:var(--ink);position:sticky;left:0;background:var(--panel);z-index:2}
+    .coverage-matrix th:first-child{background:var(--panel-2);z-index:3}
+    .coverage-matrix tr:last-child td{border-bottom:0}
+    .coverage-matrix td:last-child,.coverage-matrix th:last-child{border-right:0}
+    .cov{display:inline-flex;width:28px;height:28px;border-radius:10px;align-items:center;justify-content:center;font-weight:950;border:1px solid transparent}
+    .cov.yes{background:rgba(23,128,61,.14);color:var(--green);border-color:rgba(23,128,61,.2)}
+    .cov.maybe{background:rgba(183,121,31,.16);color:var(--amber);border-color:rgba(183,121,31,.22)}
+    .cov.no{background:rgba(192,53,53,.13);color:var(--red);border-color:rgba(192,53,53,.2)}
+    .matrix-wrap{overflow:auto;border-radius:24px}
+    .legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .warning-stack{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}
+    .warning-card{border:1px solid var(--line);border-radius:24px;background:var(--panel);padding:16px;box-shadow:var(--shadow-soft);position:relative;overflow:hidden}
+    .warning-card strong{display:block;font-size:1rem;margin-bottom:7px}
+    .warning-card p{color:var(--muted);font-size:.84rem;margin:0}
+    .warning-card .big-letter{position:absolute;right:14px;bottom:-18px;font-size:5.2rem;font-weight:1000;line-height:1;opacity:.06}
+    .wizard{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;align-items:start}
+    .wizard-panel,.result-panel{border:1px solid var(--line);border-radius:28px;background:var(--panel);box-shadow:var(--shadow);padding:20px}
+    .field{display:grid;gap:7px;margin-bottom:14px}
+    .field label{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-2);font-weight:900}
+    .field select{width:100%;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:16px;padding:12px 13px;outline:0}
+    .result-title{display:flex;align-items:start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+    .result-title h3{font-size:1.7rem;margin:0;line-height:1;letter-spacing:-.055em}
+    .answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .answer-box{border:1px solid var(--line);border-radius:22px;background:var(--panel-2);padding:15px}
+    .answer-box h4{margin:0 0 9px;font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-2)}
+    .answer-box ul{margin:0;padding-left:18px;color:var(--muted)}
+    .answer-box li{margin:7px 0}
+    .case-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .case-card{border:1px solid var(--line);border-radius:26px;background:var(--panel);box-shadow:var(--shadow-soft);padding:18px;display:grid;gap:12px}
+    .case-card h3{font-size:1.15rem;letter-spacing:-.04em;line-height:1.05;margin:0}
+    .case-card p{color:var(--muted);margin:0;font-size:.88rem}
+    .case-result{border-radius:18px;padding:12px;background:linear-gradient(135deg,rgba(192,53,53,.10),rgba(183,121,31,.10));border:1px solid var(--line);font-size:.84rem;color:var(--ink)}
+    details.source-details{border:1px solid var(--line);background:var(--panel);border-radius:24px;padding:14px 16px;box-shadow:var(--shadow-soft);margin:12px 0}
+    details.source-details summary{cursor:pointer;font-weight:900;letter-spacing:-.02em}
+    details.source-details p,details.source-details li{color:var(--muted)}
+    .empty{border:1px dashed var(--line-strong);border-radius:24px;padding:28px;text-align:center;color:var(--muted);background:var(--panel)}
+    .print-note{display:none}
+    @media (max-width:1180px){
+      .app-shell{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.main{padding:22px}.hero{grid-template-columns:1fr}.organism-grid,.antibiotic-grid,.mechanism-grid,.warning-stack,.case-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wizard{grid-template-columns:1fr}.detail-drawer{left:24px;width:auto}.coverage-matrix td:first-child,.coverage-matrix th:first-child{position:static}
+    }
+    @media (max-width:720px){
+      .main{padding:16px}.hero-card{padding:22px;border-radius:24px}.organism-grid,.antibiotic-grid,.mechanism-grid,.warning-stack,.case-grid,.answer-grid{grid-template-columns:1fr}.section-head{display:block}.toolbar{justify-content:flex-start;margin-top:12px}.map-row{grid-template-columns:1fr}.detail-drawer{inset:10px;width:auto;border-radius:22px}.sidebar{padding:14px}.nav-list{grid-template-columns:1fr 1fr}.nav-btn{font-size:.82rem}.nav-ico{display:none}h1{font-size:3rem}.coverage-matrix th,.coverage-matrix td{font-size:.75rem;padding:8px 7px}
+    }
+    @media print{
+      body{background:white}.sidebar,.hero-actions,.toolbar,.wizard-panel,.drawer-close{display:none!important}.app-shell{display:block}.main{padding:0}.section{display:block!important;break-inside:auto}.hero{display:block}.hero-card,.stat-card,.pokedex-card,.warning-card,.wizard-panel,.result-panel,.case-card,details.source-details{box-shadow:none;border-color:#cbd5e1}.pokedex-card{break-inside:avoid}.print-note{display:block;color:#475569;margin:12px 0}.detail-drawer{position:static;width:auto;box-shadow:none;margin:12px 0}
+    }
+  </style>
+</head>
+<body>
+  <div id="root"><div style="max-width:760px;margin:40px auto;padding:24px;border:1px solid #dfe6f3;border-radius:20px;font-family:system-ui,sans-serif;background:#fff;color:#172033"><strong>PROADEX está cargando…</strong><p>Si este mensaje no desaparece, React no se ha cargado desde CDN. Abre el archivo con conexión a internet o integra React localmente en tu proyecto.</p></div></div>
+  <script>
+const { useMemo, useState } = React;
+const SECTIONS = [
+    { id: 'atlas', label: 'Atlas bacteriano', icon: '🧫' },
+    { id: 'antibiotics', label: 'Pokédex antibióticos', icon: '💊' },
+    { id: 'mechanisms', label: 'Mecanismos MDR', icon: '🧬' },
+    { id: 'matrix', label: 'Heatmap cobertura', icon: '▦' },
+    { id: 'wizard', label: 'Selector clínico', icon: '🎯' },
+    { id: 'cases', label: 'Trampas de guardia', icon: '⚠️' },
+    { id: 'deep', label: 'Lectura escondida', icon: '📚' }
+];
+const organisms = [
+    { id: 'saureus', dex: 'G+001', group: 'positive', name: 'Staphylococcus aureus', short: 'S. aureus', icon: '🟣', type: 'coco en racimos', tags: ['SASM', 'SARM'], syndromes: 'IPPB, abscesos, bacteriemia, endocarditis, neumonía, osteomielitis.', cover: 'SASM: cloxacilina/cefazolina. SARM: vancomicina, daptomicina según foco, linezolid en neumonía, ceftarolina/ceftobiprol si dirigido.', gap: 'SARM no queda cubierto por beta-lactámicos habituales. Daptomicina no neumonía.', trap: 'Si el objetivo principal es SASM, no uses pip-tazo o ceftriaxona como “suficiente” si puedes usar cloxacilina/cefazolina.', search: 'staphylococcus aureus s aureus sasm sarm mrsa mssa cloxacilina cefazolina ceftarolina daptomicina vancomicina' },
+    { id: 'spyogenes', dex: 'G+002', group: 'positive', name: 'Streptococcus pyogenes', short: 'S. pyogenes', icon: '🟣', type: 'coco en cadenas', tags: ['Sensible', 'Toxina'], syndromes: 'Faringoamigdalitis, erisipela/celulitis, fascitis necrotizante, shock tóxico.', cover: 'Penicilina o amoxicilina. En cuadro toxinogénico, añadir clindamicina según protocolo.', gap: 'El antibiótico no sustituye cirugía si hay necrosis.', trap: 'En fascitis necrotizante, pensar en control quirúrgico y antitoxina; no solo “cubre Strep”.', search: 'streptococcus pyogenes grupo a penicilina amoxicilina clindamicina fascitis' },
+    { id: 'spneumo', dex: 'G+003', group: 'positive', name: 'Streptococcus pneumoniae', short: 'Neumococo', icon: '🟣', type: 'diplococo', tags: ['NAC', 'SNC'], syndromes: 'NAC, otitis, sinusitis, meningitis, bacteriemia.', cover: 'Amoxicilina en respiratorio no grave; ceftriaxona/cefotaxima en hospital o meningitis según CMI.', gap: 'El punto de corte cambia según foco: meningitis exige margen mucho más estricto.', trap: 'No extrapoles sensibilidad respiratoria a meningitis.', search: 'neumococo streptococcus pneumoniae meningitis nac ceftriaxona amoxicilina' },
+    { id: 'enterococcus', dex: 'G+004', group: 'positive', name: 'Enterococcus faecalis / faecium', short: 'Enterococcus', icon: '🟣', type: 'coco', tags: ['LAME', 'VRE'], syndromes: 'ITU, bacteriemia, endocarditis, intraabdominal nosocomial.', cover: 'E. faecalis sensible: ampicilina/amoxicilina o penicilina G dirigida. Endocarditis: esquemas sinérgicos.', gap: 'Cefalosporinas no cubren Enterococcus. E. faecium suele ser resistente a ampicilina y puede ser VRE.', trap: 'Ceftriaxona + ampicilina puede ser sinergia en endocarditis por E. faecalis; ceftriaxona sola no cubre Enterococcus.', search: 'enterococcus faecalis faecium ampicilina cefalosporinas vre endocarditis' },
+    { id: 'listeria', dex: 'G+005', group: 'positive', name: 'Listeria monocytogenes', short: 'Listeria', icon: '🟣', type: 'bacilo', tags: ['SNC', 'LAME'], syndromes: 'Meningitis/meningoencefalitis en anciano, embarazo, neonato o inmunodeprimido; bacteriemia.', cover: 'Ampicilina/amoxicilina o penicilina G si se sospecha.', gap: 'Cefalosporinas no cubren Listeria.', trap: 'Anciano con meningitis + ceftriaxona sola = hueco crítico.', search: 'listeria meningitis anciano embarazo ampicilina ceftriaxona' },
+    { id: 'clostridium', dex: 'A001', group: 'anaerobe', name: 'Clostridium / Clostridioides', short: 'Clostridium', icon: '🟤', type: 'anaerobio Gram +', tags: ['Anaerobio', 'CDI'], syndromes: 'C. difficile, mionecrosis, infecciones polimicrobianas profundas.', cover: 'Depende del síndrome. Polimicrobiana: pip-tazo/carbapenémico o beta-lactámico + metronidazol.', gap: 'Aztreonam y aminoglucósidos no cubren anaerobios.', trap: 'Vancomicina IV no trata CDI luminal; fidaxomicina/vancomicina oral actúan en colon.', search: 'clostridium clostridioides difficile metronidazol fidaxomicina vancomicina oral anaerobios' },
+    { id: 'neisseria', dex: 'G-001', group: 'negative', name: 'Neisseria meningitidis / gonorrhoeae', short: 'Neisseria', icon: '🔵', type: 'diplococo GN', tags: ['ITS', 'SNC'], syndromes: 'Meningitis/meningococemia; uretritis/cervicitis, EIP y artritis gonocócica.', cover: 'Ceftriaxona suele ser referencia clínica; ajustar a guía ITS/meningitis.', gap: 'Resistencia adquirida en gonococo obliga a guía actualizada.', trap: 'No rescatar pautas antiguas de gonococo sin mirar guía local.', search: 'neisseria meningitidis gonorrhoeae ceftriaxona meningitis gonococo' },
+    { id: 'haemo-morax', dex: 'G-002', group: 'negative', name: 'Haemophilus influenzae / Moraxella', short: 'H. influenzae/Moraxella', icon: '🔵', type: 'cocobacilos', tags: ['Respiratorio', 'β-lactamasa'], syndromes: 'EPOC reagudizado, otitis, sinusitis, NAC seleccionada.', cover: 'Amox-clav, cefuroxima o ceftriaxona según gravedad y foco.', gap: 'Frecuente producción de beta-lactamasa: amoxicilina sola puede fallar.', trap: 'Si fracaso a amoxicilina en EPOC/ORL, piensa en beta-lactamasa.', search: 'haemophilus influenzae moraxella epoc amoxicilina clavulanico cefuroxima' },
+    { id: 'ecoli-kleb-prot', dex: 'G-003', group: 'negative', name: 'E. coli / Klebsiella / Proteus', short: 'Enterobacterales comunes', icon: '🔵', type: 'bacilos GN', tags: ['ITU', 'Abdomen'], syndromes: 'ITU, pielonefritis, bacteriemia, intraabdominal, colangitis, prostatitis.', cover: 'Ceftriaxona si no BLEE/AmpC y foco adecuado. Carbapenémico si BLEE grave/invasiva.', gap: 'Klebsiella es resistente a ampicilina/amoxicilina. Proteus no es Pseudomonas.', trap: 'No escales a antipseudomónico solo porque el cultivo dice “Proteus”.', search: 'escherichia coli klebsiella proteus enterobacterales ceftriaxona blee itu pielonefritis' },
+    { id: 'ampc-trio', dex: 'G-004', group: 'negative', name: 'Enterobacter cloacae / K. aerogenes / C. freundii', short: 'AmpC alto riesgo', icon: '🔵', type: 'Enterobacterales AmpC', tags: ['AmpC', 'Trampa'], syndromes: 'Bacteriemia, ITU complicada, nosocomial, intraabdominal, dispositivos.', cover: 'Cefepime si sensible y CMI favorable. Carbapenémico si grave/profunda, BLEE coproducida o CMI problemática.', gap: 'Evitar ceftriaxona/cefotaxima en infección invasiva aunque parezca sensible.', trap: 'La sensibilidad inicial a ceftriaxona puede inducir resistencia durante tratamiento.', search: 'enterobacter cloacae klebsiella aerogenes citrobacter freundii ampc cefepime ceftriaxona' },
+    { id: 'pseudomonas', dex: 'NF001', group: 'negative', name: 'Pseudomonas aeruginosa', short: 'Pseudomonas', icon: '🟢', type: 'no fermentador', tags: ['Pseudomonas', 'DTR'], syndromes: 'Nosocomial, bronquiectasias/FQ, neutropenia, UCI, ITU sondada, quemaduras, ectima gangrenoso.', cover: 'Pip-tazo, ceftazidima, cefepime, aztreonam si sensible; meropenem/imipenem si indicación. DTR: nuevos BL/BLI o cefiderocol según AST.', gap: 'No la cubren ceftriaxona, cefuroxima, amox-clav ni ertapenem.', trap: 'Ertapenem no cubre Pseudomonas: APE.', search: 'pseudomonas aeruginosa cefepime ceftazidima piperacilina tazobactam ertapenem dtr' },
+    { id: 'acinetobacter', dex: 'NF002', group: 'negative', name: 'Acinetobacter baumannii / CRAB', short: 'CRAB', icon: '🟢', type: 'cocobacilo/no fermentador', tags: ['UCI', 'CRAB'], syndromes: 'UCI, neumonía asociada a ventilación, heridas, bacteriemia, brotes.', cover: 'Si infección real: sulbactam-durlobactam + meropenem/imipenem si disponible; si no, alta dosis de ampicilina-sulbactam + otro agente.', gap: 'No asumir que meropenem amplio cubre CRAB.', trap: 'Vía aérea con CRAB puede ser colonización: confirma síndrome infeccioso antes de combinar.', search: 'acinetobacter baumannii crab sulbactam durlobactam colistina cefiderocol uci' },
+    { id: 'steno', dex: 'NF003', group: 'negative', name: 'Stenotrophomonas maltophilia', short: 'Stenotrophomonas', icon: '🟢', type: 'no fermentador', tags: ['Colonización', 'L1/L2'], syndromes: 'Colonización respiratoria frecuente; infección real en críticos, inmunodeprimidos, catéter o neumonía compatible.', cover: 'Si moderada-grave: dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam.', gap: 'Carbapenémicos inútiles por L1; muchas cefalosporinas fallan por L2.', trap: 'Primero distinguir infección de colonización. No usar ceftazidima como tratamiento.', search: 'stenotrophomonas maltophilia tmp smx minociclina levofloxacino cefiderocol ceftazidima' },
+    { id: 'bacteroides', dex: 'A002', group: 'anaerobe', name: 'Bacteroides fragilis y anaerobios GN', short: 'Bacteroides/anaerobios', icon: '🟤', type: 'anaerobio GN', tags: ['Abdomen', 'Metronidazol'], syndromes: 'Intraabdominal, abscesos, pelvis, pie diabético, mordeduras mixtas.', cover: 'Pip-tazo, carbapenémicos, amox-clav en cuadros comunitarios seleccionados, o metronidazol asociado a cefalosporina.', gap: 'Ceftriaxona, cefepime y ceftazidima solas no bastan. Aztreonam no cubre anaerobios.', trap: 'Ceftriaxona para abdomen suele necesitar metronidazol.', search: 'bacteroides fragilis anaerobios metronidazol piperacilina tazobactam carbapenemico' },
+    { id: 'atypicals', dex: 'AT001', group: 'atypical', name: 'Mycoplasma / Chlamydia / Legionella', short: 'Atípicos', icon: '🟡', type: 'intracelulares/sin pared', tags: ['No beta', 'NAC'], syndromes: 'Neumonía atípica, brotes, exposición a aerosoles/agua en Legionella.', cover: 'Macrólidos, doxiciclina o fluoroquinolonas respiratorias según síndrome y gravedad.', gap: 'Los beta-lactámicos no cubren atípicos.', trap: 'Beta-lactámico perfecto + Legionella = fallo si no añades cobertura intracelular.', search: 'mycoplasma chlamydia legionella atipicos macrolidos doxiciclina beta lactamicos' }
+];
+const antibiotics = [
+    { id: 'pen-g', dex: 'B001', group: 'blue', name: 'Penicilina G', family: 'Penicilina natural', icon: '💊', type: 'Gram + estrecho', covers: ['S. pyogenes', 'Treponema', 'Listeria', 'E. faecalis sensible'], misses: ['SASM productor de penicilinasa', 'Enterobacterales', 'Pseudomonas'], trap: 'Enterococcus: actividad inhibitoria; si buscas bactericidia, precisa estrategia sinérgica.', search: 'penicilina g treponema listeria enterococcus streptococcus' },
+    { id: 'amp-amox', dex: 'B002', group: 'green', name: 'Ampicilina / amoxicilina', family: 'Aminopenicilina', icon: '💊', type: 'Listeria/Enterococcus', covers: ['Streptococcus', 'E. faecalis sensible', 'Listeria'], misses: ['Pseudomonas', 'SARM', 'S. aureus habitual', 'β-lactamasas sin inhibidor'], trap: 'En meningitis de anciano/inmunodeprimido, es el hueco que añade cobertura anti-Listeria.', search: 'ampicilina amoxicilina enterococcus listeria meningitis' },
+    { id: 'amoxclav', dex: 'B003', group: 'green', name: 'Amoxicilina-clavulánico', family: 'Aminopenicilina + inhibidor', icon: '💊', type: 'Polimicrobiano comunitario', covers: ['ORL/respiratorio con β-lactamasa', 'Mordeduras', 'Odontógeno', 'Anaerobios comunitarios', 'E. faecalis sensible'], misses: ['Pseudomonas', 'SARM', 'BLEE grave', 'AmpC relevante'], trap: 'El clavulánico no añade Enterococcus/Listeria: eso lo aporta amoxicilina.', search: 'amoxicilina clavulanico amoxclav anaerobios mordeduras enterococcus' },
+    { id: 'cloxa-cefa', dex: 'B004', group: 'blue', name: 'Cloxacilina / cefazolina', family: 'Anti-SASM', icon: '💊', type: 'SASM dirigido', covers: ['SASM', 'Streptococcus'], misses: ['SARM', 'Enterococcus', 'Listeria', 'Pseudomonas', 'Anaerobios profundos'], trap: 'Para SASM dirigido, son preferentes frente a ceftriaxona o pip-tazo.', search: 'cloxacilina cefazolina sasm mssa staphylococcus' },
+    { id: 'cefuroxime', dex: 'C002', group: 'blue', name: 'Cefuroxima', family: 'Cefalosporina 2ª', icon: '💊', type: 'Respiratorio/ITU seleccionado', covers: ['Streptococcus', 'SASM variable', 'H. influenzae/Moraxella', 'algunos GN comunitarios'], misses: ['Pseudomonas', 'Enterococcus', 'Listeria', 'BLEE/CRE', 'Anaerobios profundos'], trap: 'No la conviertas en antipseudomónico ni en tratamiento de foco profundo anaerobio.', search: 'cefuroxima segunda respiratorio moraxella haemophilus' },
+    { id: 'ceftriaxone', dex: 'C003', group: 'blue', name: 'Ceftriaxona / cefotaxima', family: 'Cefalosporina 3ª no pseudomónica', icon: '💊', type: 'Enterobacterales comunitarias', covers: ['E. coli/Klebsiella/Proteus no BLEE', 'Neumococo', 'Meningococo', 'Gonococo'], misses: ['Pseudomonas', 'Enterococcus', 'Listeria', 'SARM', 'Anaerobios'], trap: 'La gran trampa de guardia: cómoda, pero deja huecos críticos.', search: 'ceftriaxona cefotaxima enterobacterales meningitis pseudomonas enterococcus listeria anaerobios' },
+    { id: 'ceftazidime', dex: 'C004', group: 'green', name: 'Ceftazidima', family: 'Cefalosporina 3ª pseudomónica', icon: '💊', type: 'Pseudomonas', covers: ['Pseudomonas si sensible', 'BGN aerobios'], misses: ['Anaerobios', 'Enterococcus', 'Listeria', 'SARM', 'Gram+ potente'], trap: 'No es “ceftriaxona plus”: pierde mucho Gram+ y no cubre anaerobios.', search: 'ceftazidima pseudomonas anaerobios grampositivos' },
+    { id: 'cefepime', dex: 'C005', group: 'amber', name: 'Cefepime', family: 'Cefalosporina 4ª', icon: '💊', type: 'AmpC/Pseudomonas', covers: ['AmpC si CMI favorable', 'Pseudomonas si sensible', 'Enterobacterales no BLEE'], misses: ['BLEE dirigida', 'Anaerobios', 'Enterococcus', 'Listeria', 'SARM'], trap: 'Ajuste renal obligatorio: neurotoxicidad si se olvida.', search: 'cefepime ampc pseudomonas blee neurotoxicidad' },
+    { id: 'piptazo', dex: 'P001', group: 'green', name: 'Piperacilina-tazobactam', family: 'Penicilina antipseudomónica + inhibidor', icon: '💊', type: 'Amplio con anaerobios', covers: ['Pseudomonas si sensible', 'Anaerobios', 'Enterobacterales no BLEE', 'SASM', 'E. faecalis sensible'], misses: ['SARM', 'E. faecium resistente', 'Carbapenemasas', 'BLEE grave fiable'], trap: 'En BLEE extraurinaria grave, no usar como dirigida aunque parezca sensible.', search: 'piperacilina tazobactam pip tazo pseudomonas anaerobios blee' },
+    { id: 'ertapenem', dex: 'K001', group: 'blue', name: 'Ertapenem', family: 'Carbapenémico grupo 1', icon: '💊', type: 'BLEE estable', covers: ['Enterobacterales BLEE', 'Anaerobios', 'muchos Gram+ comunitarios'], misses: ['Acinetobacter', 'Pseudomonas', 'Enterococcus'], trap: 'APE: Acinetobacter, Pseudomonas, Enterococcus quedan fuera.', search: 'ertapenem blee ape acinetobacter pseudomonas enterococcus' },
+    { id: 'mero-imi', dex: 'K002', group: 'red', name: 'Meropenem / imipenem', family: 'Carbapenémico antipseudomónico', icon: '💊', type: 'UCI/MDR', covers: ['BLEE', 'AmpC', 'Anaerobios', 'Pseudomonas si sensible'], misses: ['SARM', 'Stenotrophomonas', 'Atípicos', 'Enterococcus resistente'], trap: 'No gastar carbapenémico si el problema es colonización o cistitis baja con opción oral activa.', search: 'meropenem imipenem carbapenemico blee ampc pseudomonas anaerobios' },
+    { id: 'aztreonam', dex: 'M001', group: 'amber', name: 'Aztreonam', family: 'Monobactámico', icon: '💊', type: 'Solo GN aerobios', covers: ['Enterobacterales si sensible', 'Pseudomonas si sensible'], misses: ['Gram positivos', 'Anaerobios'], trap: 'Comparte cadena lateral con ceftazidima: cuidado si alergia confirmada a ceftazidima.', search: 'aztreonam monobactam alergia ceftazidima pseudomonas anaerobios' },
+    { id: 'anti-mrsa-ceph', dex: 'C006', group: 'blue', name: 'Ceftarolina / ceftobiprol', family: 'Cefalosporinas anti-SARM', icon: '💊', type: 'Anti-SARM beta-lactámico', covers: ['SARM', 'SASM', 'Streptococcus', 'neumococo resistente'], misses: ['Pseudomonas en ceftarolina', 'BLEE/CRE', 'Enterococcus fiable'], trap: 'Excepción anti-SARM, no comodín MDR.', search: 'ceftarolina ceftobiprol sarm mrsa neumococo' },
+    { id: 'caz-avi', dex: 'N001', group: 'red', name: 'Ceftazidima-avibactam', family: 'Nuevo BL/BLI', icon: '🧬', type: 'KPC/OXA-48-like', covers: ['KPC', 'OXA-48-like', 'algunas Pseudomonas DTR si sensible'], misses: ['MBL en monoterapia', 'Gram+ y anaerobios relevantes'], trap: 'MBL: combinar con aztreonam o elegir otra estrategia según disponibilidad/AST.', search: 'ceftazidima avibactam caz avi kpc oxa48 mbl aztreonam' },
+    { id: 'ceftolo-tazo', dex: 'N002', group: 'green', name: 'Ceftolozano-tazobactam', family: 'Nuevo BL/BLI', icon: '🧬', type: 'Pseudomonas DTR', covers: ['Pseudomonas MDR/DTR si sensible', 'algunas BLEE pero no como referencia'], misses: ['KPC', 'OXA-48', 'MBL', 'Anaerobios sin metronidazol'], trap: 'Especialista en Pseudomonas; no lo uses como carbapenemasa-killer.', search: 'ceftolozano tazobactam pseudomonas dtr blee kpc' },
+    { id: 'mvb-imi-rel', dex: 'N003', group: 'red', name: 'Meropenem-vaborbactam / imipenem-relebactam', family: 'Nuevo BL/BLI', icon: '🧬', type: 'KPC', covers: ['KPC', 'algunas Pseudomonas DTR si sensible en IMI-REL'], misses: ['MBL', 'OXA-48-like en MVB/IMI-REL'], trap: 'Si es OXA-48 o MBL, cambiar de mapa.', search: 'meropenem vaborbactam imipenem relebactam kpc oxa48 mbl' },
+    { id: 'cefiderocol', dex: 'N004', group: 'red', name: 'Cefiderocol', family: 'Cefalosporina sideróforo', icon: '🧬', type: 'MDR/XDR', covers: ['MBL como opción', 'algunos no fermentadores MDR', 'CRE según AST'], misses: ['Gram+', 'Anaerobios'], trap: 'Último recurso: siempre con AST, foco claro y PROA/Infecciosas.', search: 'cefiderocol sideroforo mbl crab pseudomonas dtr' },
+    { id: 'vanco', dex: 'O001', group: 'amber', name: 'Vancomicina', family: 'Glucopéptido', icon: '🛡️', type: 'Gram+ resistentes', covers: ['SARM', 'E. faecium sensible', 'Gram+ resistentes'], misses: ['Gram negativos', 'CDI luminal por vía IV'], trap: 'IV no trata luz colónica; para CDI, vía oral/fidaxomicina según caso.', search: 'vancomicina sarm c difficile oral iv niveles' },
+    { id: 'dapto', dex: 'O002', group: 'blue', name: 'Daptomicina', family: 'Lipopeptido', icon: '🛡️', type: 'SARM/ERV no pulmonar', covers: ['Bacteriemia por Gram+', 'endocarditis derecha', 'osteoarticular', 'IPPB'], misses: ['Neumonía'], trap: 'Surfactante pulmonar la inactiva. CK y estatinas.', search: 'daptomicina neumonia surfactante ck sarm erv' },
+    { id: 'tmp-smx', dex: 'O003', group: 'amber', name: 'Cotrimoxazol', family: 'TMP-SMX', icon: '🧪', type: 'Oral útil / Steno', covers: ['Stenotrophomonas si sensible', 'algunas ITU', 'Pneumocystis'], misses: ['Pseudomonas', 'anaerobios'], trap: 'Vigilar potasio, función renal y hemograma.', search: 'cotrimoxazol tmp smx stenotrophomonas potasio hemograma' },
+    { id: 'metro', dex: 'O004', group: 'blue', name: 'Metronidazol', family: 'Nitroimidazol', icon: '🧪', type: 'Anaerobios', covers: ['Anaerobios', 'protozoos seleccionados'], misses: ['Aerobios', 'Gram+ y GN no anaerobios'], trap: 'Ceftriaxona + metronidazol es una lógica; metronidazol solo rara vez lo es en foco polimicrobiano.', search: 'metronidazol anaerobios abdomen ceftriaxona' }
+];
+const mechanisms = [
+    { id: 'blee', name: 'BLEE', icon: '🧬', group: 'green', question: '¿Cistitis baja o infección invasiva?', use: 'Cistitis baja: ahorrar carbapenémico si nitrofurantoína/TMP-SMX/quinolona/fosfomicina encaja. Extraurinaria grave: carbapenémico.', avoid: 'Pip-tazo o cefepime como dirigidos en BLEE extraurinaria grave aunque figuren sensibles.', micro: 'AST completo y opciones orales si puede haber desescalada.', search: 'blee esbl carbapenemico cistitis pielonefritis cefepime piperacilina' },
+    { id: 'ampc', name: 'AmpC inducible', icon: '🧬', group: 'amber', question: '¿Es Enterobacter/K. aerogenes/C. freundii invasivo?', use: 'Cefepime si sensible y CMI favorable. Carbapenémico si grave, foco profundo, CMI problemática o BLEE coproducida.', avoid: 'Ceftriaxona/cefotaxima/ceftazidima en infección invasiva por especies de riesgo.', micro: 'Identificar especie y CMI de cefepime; valorar BLEE coproducida.', search: 'ampc enterobacter klebsiella aerogenes citrobacter cefepime ceftriaxona' },
+    { id: 'kpc', name: 'CRE-KPC', icon: '🧬', group: 'red', question: '¿Carbapenemasa KPC confirmada?', use: 'Meropenem-vaborbactam, ceftazidima-avibactam o imipenem-relebactam si sensible.', avoid: 'Combinaciones antiguas con aminoglucósido/polimixina si ya hay beta-lactámico activo.', micro: 'Tipado de carbapenemasa + AST de nuevos BL/BLI.', search: 'kpc cre meropenem vaborbactam ceftazidima avibactam imipenem relebactam' },
+    { id: 'oxa48', name: 'CRE OXA-48-like', icon: '🧬', group: 'red', question: '¿OXA-48-like?', use: 'Ceftazidima-avibactam como referencia si sensible. Cefiderocol como alternativa según caso.', avoid: 'Meropenem-vaborbactam o imipenem-relebactam como si fueran KPC.', micro: 'Tipado de carbapenemasa; confirmar actividad de CAZ-AVI.', search: 'oxa48 oxa 48 ceftazidima avibactam cefiderocol' },
+    { id: 'mbl', name: 'MBL', icon: '🧬', group: 'red', question: '¿NDM/VIM/IMP?', use: 'Ceftazidima-avibactam + aztreonam o cefiderocol. Aztreonam-avibactam/cefepime-zidebactam según disponibilidad.', avoid: 'CAZ-AVI en monoterapia. Vaborbactam/relebactam no inhiben MBL.', micro: 'Probar combinación CAZ-AVI + aztreonam si el laboratorio puede.', search: 'mbl ndm vim imp aztreonam avibactam cefiderocol' },
+    { id: 'dtr-pa', name: 'Pseudomonas DTR', icon: '🧬', group: 'green', question: '¿Conserva algún beta-lactámico clásico?', use: 'Si conserva BL clásico no carbapenémico, usarlo a dosis altas/perfusión extendida. Si DTR: ceftolo-tazo, CAZ-AVI, IMI-REL o cefiderocol según AST.', avoid: 'Combinación de rutina si ya hay beta-lactámico activo confirmado.', micro: 'AST para nuevos BL/BLI y cefiderocol.', search: 'pseudomonas dtr ceftolozano tazobactam cefiderocol' },
+    { id: 'crab', name: 'CRAB', icon: '🧬', group: 'red', question: '¿Infección real o colonización?', use: 'Sulbactam-durlobactam + meropenem/imipenem si disponible. Si no, ampicilina-sulbactam alta dosis + otro agente.', avoid: 'Meropenem/imipenem solos. Tratar colonización respiratoria sin síndrome.', micro: 'Confirmar sensibilidad y discutir combinación con PROA.', search: 'crab acinetobacter sulbactam durlobactam colistina cefiderocol' },
+    { id: 'steno', name: 'Stenotrophomonas', icon: '🧬', group: 'amber', question: '¿Colonización o infección moderada-grave?', use: 'Dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam.', avoid: 'Ceftazidima y carbapenémicos. Tratar hallazgo casual en vía aérea.', micro: 'Solicitar sensibilidad a TMP-SMX, levofloxacino, minociclina y cefiderocol.', search: 'stenotrophomonas tmp smx minociclina levofloxacino cefiderocol' }
+];
+const matrixCols = ['Strep', 'SASM', 'SARM', 'Enteroc.', 'Listeria', 'Enterob.', 'BLEE', 'P. aer.', 'Anaerob.', 'Atíp.'];
+const matrixRows = [
+    { drug: 'Ampicilina/amoxicilina', vals: ['yes', 'no', 'no', 'yes', 'yes', 'maybe', 'no', 'no', 'maybe', 'no'] },
+    { drug: 'Amox-clav', vals: ['yes', 'yes', 'no', 'yes', 'yes', 'maybe', 'no', 'no', 'yes', 'no'] },
+    { drug: 'Cloxacilina', vals: ['maybe', 'yes', 'no', 'no', 'no', 'no', 'no', 'no', 'no', 'no'] },
+    { drug: 'Pip-tazo', vals: ['yes', 'yes', 'no', 'maybe', 'maybe', 'yes', 'maybe', 'yes', 'yes', 'no'] },
+    { drug: 'Cefazolina', vals: ['yes', 'yes', 'no', 'no', 'no', 'maybe', 'no', 'no', 'no', 'no'] },
+    { drug: 'Cefuroxima', vals: ['yes', 'yes', 'no', 'no', 'no', 'maybe', 'no', 'no', 'no', 'no'] },
+    { drug: 'Ceftriaxona/cefotaxima', vals: ['yes', 'maybe', 'no', 'no', 'no', 'yes', 'no', 'no', 'no', 'no'] },
+    { drug: 'Ceftazidima', vals: ['maybe', 'no', 'no', 'no', 'no', 'yes', 'no', 'yes', 'no', 'no'] },
+    { drug: 'Cefepime', vals: ['yes', 'maybe', 'no', 'no', 'no', 'yes', 'no', 'yes', 'no', 'no'] },
+    { drug: 'Aztreonam', vals: ['no', 'no', 'no', 'no', 'no', 'yes', 'no', 'yes', 'no', 'no'] },
+    { drug: 'Ertapenem', vals: ['yes', 'maybe', 'no', 'no', 'maybe', 'yes', 'yes', 'no', 'yes', 'no'] },
+    { drug: 'Meropenem/imipenem', vals: ['yes', 'maybe', 'no', 'maybe', 'maybe', 'yes', 'yes', 'yes', 'yes', 'no'] },
+    { drug: 'Ceftarolina', vals: ['yes', 'yes', 'yes', 'maybe', 'no', 'maybe', 'no', 'no', 'no', 'no'] }
+];
+const focusOptions = [
+    { id: 'cistitis', label: 'Cistitis baja' },
+    { id: 'itu-complicada', label: 'Pielonefritis / ITU complicada' },
+    { id: 'resp', label: 'Neumonía / respiratorio' },
+    { id: 'abdomen', label: 'Intraabdominal / biliar' },
+    { id: 'snc', label: 'SNC / meningitis' },
+    { id: 'bacteriemia', label: 'Bacteriemia / sepsis' },
+    { id: 'piel', label: 'Piel y partes blandas' }
+];
+const germOptions = [
+    { id: 'blee', label: 'Enterobacterales BLEE' },
+    { id: 'ampc', label: 'AmpC alto riesgo' },
+    { id: 'pseudo', label: 'Pseudomonas' },
+    { id: 'dtr', label: 'Pseudomonas DTR' },
+    { id: 'kpc', label: 'CRE-KPC' },
+    { id: 'oxa48', label: 'CRE OXA-48-like' },
+    { id: 'mbl', label: 'CRE-MBL' },
+    { id: 'crab', label: 'CRAB' },
+    { id: 'steno', label: 'Stenotrophomonas' },
+    { id: 'sarm', label: 'SARM' },
+    { id: 'enterolisteria', label: 'Enterococcus / Listeria' },
+    { id: 'anaerobios', label: 'Anaerobios relevantes' }
+];
+const severityOptions = [
+    { id: 'estable', label: 'Estable' },
+    { id: 'invasiva', label: 'Invasiva / bacteriemia' },
+    { id: 'critico', label: 'Shock / neutropenia / UCI' }
+];
+const cases = [
+    { title: 'Anciano con meningitis', setup: 'Ceftriaxona cubre neumococo y meningococo, pero el paciente tiene riesgo de Listeria.', answer: 'Añade ampicilina/amoxicilina según protocolo. Ceftriaxona sola deja hueco LAME: Listeria.' },
+    { title: 'Enterobacter cloacae bacteriémico “S” a ceftriaxona', setup: 'El informe inicial puede parecer cómodo, pero es una especie de riesgo AmpC.', answer: 'Evita ceftriaxona en infección invasiva. Cefepime si CMI favorable o carbapenémico si gravedad/CMI/BLEE.' },
+    { title: 'Ertapenem para neumonía nosocomial con riesgo de Pseudomonas', setup: 'Ertapenem cubre BLEE y anaerobios, pero tiene hueco APE.', answer: 'Error: no cubre Pseudomonas. Usa antipseudomónico real si el riesgo es clínicamente relevante.' },
+    { title: 'Stenotrophomonas en esputo de EPOC estable', setup: 'No fermentador en vía aérea crónica sin fiebre, sin infiltrado nuevo, sin deterioro claro.', answer: 'Probable colonización. No escalar por cultivo aislado; tratar solo si síndrome infeccioso real.' },
+    { title: 'BLEE en cistitis baja estable', setup: 'Paciente sin fiebre, sin dolor lumbar, sin bacteriemia y con opción urinaria activa.', answer: 'Ahorrar carbapenémico si nitrofurantoína/TMP-SMX/quinolona/fosfomicina en E. coli encajan.' },
+    { title: 'Daptomicina para neumonía por SARM', setup: 'Daptomicina es potente anti-SARM, pero no en pulmón.', answer: 'Error de foco: se inactiva por surfactante. Considera linezolid/vancomicina según contexto y protocolo.' }
+];
+const deepSections = [
+    { title: 'Cinco filtros antes de prescribir', body: ['Foco: respiratorio, urinario, abdominal, piel, catéter, SNC o foco incierto.', 'Patógeno que no puedes fallar: Pseudomonas, Enterococcus/Listeria, SASM/SARM, anaerobios, BLEE/AmpC o no fermentadores.', 'Mecanismo probable: BLEE, AmpC, CRE/KPC/OXA-48/MBL, Pseudomonas DTR, CRAB o Stenotrophomonas.', 'Exposición real: sepsis, shock, neutropenia, foco profundo o CMI alta cambian la pauta.', 'Salida escrita: cultivos, control de foco, desescalada, paso oral y duración.'] },
+    { title: 'Reglas LAME y APE', body: ['LAME resume huecos comunes de cefalosporinas: Listeria, Atípicos, MRSA/SARM y Enterococo. Ceftarolina/ceftobiprol son excepciones anti-SARM, no solución universal.', 'APE resume los huecos de ertapenem: Acinetobacter, Pseudomonas y Enterococcus. Muy útil en BLEE estable si esos tres no importan.'] },
+    { title: 'Cómo pensar un gramnegativo resistente', body: ['No trates un antibiograma sin síndrome clínico compatible.', 'Separa cistitis baja de pielonefritis, bacteriemia, neumonía, abdomen o shock.', 'CRE exige tipado de carbapenemasa: KPC, OXA-48-like, MBL o no carbapenemasa llevan a opciones distintas.', 'CRAB y Stenotrophomonas se colonizan con facilidad: confirmar infección real antes de combinar.'] },
+    { title: 'Otros antimicrobianos: foco-veto', body: ['Aminoglucósidos y vancomicina/teicoplanina exigen plan de niveles o vigilancia cuando el curso no es puntual.', 'Daptomicina no trata neumonía por inactivación por surfactante.', 'Tigeciclina no debe ser columna vertebral de bacteriemia por niveles séricos bajos.', 'Fosfomicina IV aporta carga sódica relevante.', 'Colistina es rescate, tóxica y no debería usarse como monoterapia de reflejo.'] }
+];
+function normalize(text) { return (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function toneClass(group) {
+    if (group === 'positive')
+        return 'accent-positive';
+    if (group === 'negative')
+        return 'accent-negative';
+    if (group === 'anaerobe')
+        return 'accent-anaerobe';
+    if (group === 'atypical')
+        return 'accent-atypical';
+    return `accent-${group}`;
+}
+function covSymbol(v) { return v === 'yes' ? '✓' : v === 'maybe' ? '±' : '✗'; }
+function covClass(v) { return v === 'yes' ? 'yes' : v === 'maybe' ? 'maybe' : 'no'; }
+function getScenario(focus, germ, severity) {
+    const critical = severity === 'critico';
+    const invasive = severity === 'invasiva' || critical || ['bacteriemia', 'snc', 'abdomen', 'resp', 'itu-complicada'].includes(focus);
+    let headline = 'Decisión orientativa';
+    let doItems = ['Confirmar foco, gravedad, alergias, FG y cultivos antes de cerrar pauta.'];
+    let avoidItems = ['No tratar colonización ni una “S” del antibiograma fuera de contexto.'];
+    let microItems = ['Solicitar AST completo y revisar desescalada a 48-72 h.'];
+    let alert = critical ? 'Paciente crítico: cubrir activo pronto y avisar a PROA/Infecciosas.' : 'Paciente no crítico: se puede estrechar si foco y sensibilidad lo permiten.';
+    if (germ === 'blee') {
+        headline = focus === 'cistitis' ? 'BLEE + cistitis baja: ahorrar carbapenémico' : 'BLEE invasiva/extraurinaria: carbapenémico como ancla';
+        doItems = focus === 'cistitis' ? ['Nitrofurantoína o TMP-SMX si sensible.', 'Quinolona si sensible y beneficio supera toxicidad.', 'Fosfomicina solo si E. coli y cistitis baja encaja.'] : ['Meropenem/imipenem o ertapenem si estable y no crítico.', 'Si crítico, hipoalbuminemia o foco profundo: preferir meropenem/imipenem.', 'Paso oral a TMP-SMX/quinolona solo si sensible, estable, buen control de foco y absorción fiable.'];
+        avoidItems = focus === 'cistitis' ? ['Carbapenémico si hay opción urinaria activa y paciente estable.', 'Nitrofurantoína/fosfomicina si pielonefritis o prostatitis.'] : ['Pip-tazo o cefepime como dirigido en BLEE extraurinaria grave aunque informe sensibilidad.', 'Contar días de antibiótico inactivo como tratamiento efectivo.'];
+    }
+    if (germ === 'ampc') {
+        headline = 'AmpC alto riesgo: cefepime o carbapenémico, no ceftriaxona invasiva';
+        doItems = ['Cefepime si sensible y CMI favorable.', 'Carbapenémico si gravedad, foco profundo, CMI alta o sospecha de BLEE coproducida.', 'Revisar especie: Enterobacter cloacae complex, K. aerogenes, C. freundii.'];
+        avoidItems = ['Ceftriaxona/cefotaxima/ceftazidima en infección invasiva.', 'Pip-tazo como solución automática para AmpC invasiva.'];
+        microItems = ['Pedir CMI de cefepime y revisar posibilidad de BLEE coproducida.'];
+    }
+    if (germ === 'pseudo') {
+        headline = 'Pseudomonas: solo antipseudomónicos reales';
+        doItems = ['Pip-tazo, ceftazidima, cefepime, meropenem/imipenem o aztreonam si sensible.', 'En infección grave, pensar en exposición optimizada/perfusión extendida según protocolo.', 'Desescalar al beta-lactámico activo más estrecho cuando llegue AST.'];
+        avoidItems = ['Ceftriaxona, cefuroxima, amox-clav o ertapenem.', 'Tratar Proteus como si fuera Pseudomonas.'];
+    }
+    if (germ === 'dtr') {
+        headline = 'Pseudomonas DTR: AST ampliado manda';
+        doItems = ['Ceftolozano-tazobactam, ceftazidima-avibactam, imipenem-relebactam o cefiderocol según sensibilidad y foco.', 'Si conserva beta-lactámico clásico no carbapenémico, puede preferirse dosis alta/perfusión extendida.', 'Si MBL en Pseudomonas: cefiderocol suele ser la opción más lógica.'];
+        avoidItems = ['Combinación de rutina si ya hay beta-lactámico activo confirmado.', 'Fosfomicina oral para Pseudomonas DTR.'];
+        microItems = ['Solicitar AST de nuevos BL/BLI y cefiderocol.'];
+    }
+    if (germ === 'kpc') {
+        headline = 'CRE-KPC: inhibidores activos frente a KPC';
+        doItems = ['Meropenem-vaborbactam, ceftazidima-avibactam o imipenem-relebactam si sensible.', 'Elegir por foco, disponibilidad, CMI y toxicidad.'];
+        avoidItems = ['Polimixina/aminoglucósido/quinolona añadidos por reflejo si ya hay BL activo.', 'Usar esquema de OXA-48/MBL sin confirmar mecanismo.'];
+        microItems = ['Confirmar KPC y AST de nuevos BL/BLI.'];
+    }
+    if (germ === 'oxa48') {
+        headline = 'CRE OXA-48-like: ceftazidima-avibactam';
+        doItems = ['Ceftazidima-avibactam si sensible.', 'Cefiderocol como alternativa según foco, sensibilidad y disponibilidad.'];
+        avoidItems = ['Meropenem-vaborbactam o imipenem-relebactam como si fueran KPC.', 'Olvidar anaerobios/Gram+ si el foco lo exige.'];
+        microItems = ['Tipado de carbapenemasa y AST completo.'];
+    }
+    if (germ === 'mbl') {
+        headline = 'MBL: avibactam no inhibe MBL; necesitas aztreonam o cefiderocol';
+        doItems = ['Ceftazidima-avibactam + aztreonam.', 'Cefiderocol si sensible y foco encaja.', 'Aztreonam-avibactam o cefepime-zidebactam si disponibles/protocolo.'];
+        avoidItems = ['CAZ-AVI en monoterapia.', 'Vaborbactam/relebactam como si inhibieran MBL.'];
+        microItems = ['Pedir prueba/comentario de combinación CAZ-AVI + aztreonam si posible.'];
+    }
+    if (germ === 'crab') {
+        headline = 'CRAB: primero infección real, luego sulbactam';
+        doItems = ['Confirmar clínica compatible y control de foco.', 'Sulbactam-durlobactam + meropenem/imipenem si disponible.', 'Si no disponible: ampicilina-sulbactam alta dosis + otro agente activo según sensibilidad.'];
+        avoidItems = ['Meropenem/imipenem solos.', 'Tratar colonización respiratoria sin síndrome infeccioso.', 'Cefiderocol en monoterapia de reflejo.'];
+        microItems = ['Consultar PROA/Infecciosas y confirmar sensibilidad.'];
+    }
+    if (germ === 'steno') {
+        headline = 'Stenotrophomonas: colonización frecuente';
+        doItems = ['Tratar solo si infección real, bacteriemia o neumonía compatible.', 'Si moderada-grave: dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino.', 'Alternativa: ceftazidima-avibactam + aztreonam.'];
+        avoidItems = ['Carbapenémicos.', 'Ceftazidima como tratamiento.', 'Tratar cultivo respiratorio aislado en paciente estable.'];
+        microItems = ['Pedir sensibilidad a TMP-SMX, minociclina, levofloxacino y cefiderocol.'];
+    }
+    if (germ === 'sarm') {
+        headline = focus === 'resp' ? 'SARM respiratorio: no daptomicina' : 'SARM: el foco decide vancomicina, daptomicina, linezolid o beta-lactámico anti-SARM';
+        doItems = focus === 'resp' ? ['Linezolid o vancomicina según gravedad, bacteriemia y protocolo.', 'Ceftarolina/ceftobiprol si indicación dirigida y disponibilidad.'] : ['Vancomicina o daptomicina en bacteriemia/endocarditis según foco.', 'Ceftarolina/ceftobiprol como beta-lactámicos anti-SARM dirigidos.', 'Control de foco: drenaje, retirada de catéter, eco si bacteriemia.'];
+        avoidItems = ['Beta-lactámicos habituales.', 'Daptomicina en neumonía.', 'Tratar absceso sin drenaje si es drenabble.'];
+    }
+    if (germ === 'enterolisteria') {
+        headline = focus === 'snc' ? 'SNC con riesgo Listeria: añade aminopenicilina' : 'Enterococcus/Listeria: cefalosporinas no bastan';
+        doItems = ['Ampicilina/amoxicilina o penicilina G dirigida si sensible.', 'En E. faecalis endocarditis, pensar en sinergia según protocolo.', 'Si E. faecium/VRE, estrategia dirigida y PROA.'];
+        avoidItems = ['Ceftriaxona/cefepime/ceftazidima como cobertura de Enterococcus o Listeria.', 'Olvidar Listeria en meningitis de anciano, embarazo, neonato o inmunodeprimido.'];
+    }
+    if (germ === 'anaerobios') {
+        headline = 'Anaerobios: cubrir con fármaco adecuado o añadir metronidazol';
+        doItems = ['Amox-clav, pip-tazo o carbapenémico si encaja.', 'Si usas ceftriaxona/cefepime/ceftazidima para abdomen/pelvis, añadir metronidazol.', 'Control de foco: drenaje/cirugía/desobstrucción.'];
+        avoidItems = ['Aztreonam solo.', 'Ceftriaxona sola en foco abdominal con anaerobios.', 'Antibiótico como sustituto de drenaje.'];
+    }
+    if (focus === 'snc' && !['enterolisteria', 'sarm'].includes(germ)) {
+        microItems.push('En SNC, revisar penetración meníngea y necesidad de cubrir Listeria según edad/inmunosupresión.');
+    }
+    if (focus === 'abdomen' && !['anaerobios', 'crab', 'steno'].includes(germ)) {
+        microItems.push('En foco abdominal, comprobar si tu pauta cubre anaerobios o añade metronidazol.');
+    }
+    return { headline, doItems, avoidItems, microItems, alert };
+}
+function Card({ item, type, onClick }) {
+    const isOrg = type === 'organism';
+    return React.createElement("article", { className: `pokedex-card ${toneClass(item.group)}`, onClick: () => onClick(item, type) },
+        React.createElement("div", { className: "pokedex-top" },
+            React.createElement("div", null,
+                React.createElement("div", { className: "dex-id" },
+                    "#",
+                    item.dex),
+                React.createElement("span", { className: "type-badge" }, isOrg ? item.type : item.type)),
+            React.createElement("div", { className: "pokedex-icon" }, item.icon)),
+        React.createElement("h3", null, item.short || item.name),
+        React.createElement("p", null, isOrg ? item.syndromes : item.family),
+        React.createElement("div", { className: "mini-list" },
+            React.createElement("div", { className: "mini-row" },
+                React.createElement("b", null, isOrg ? 'Cubre' : 'Cubre'),
+                React.createElement("span", null, isOrg ? item.cover : item.covers.slice(0, 3).join(' · '))),
+            React.createElement("div", { className: "mini-row" },
+                React.createElement("b", null, "Hueco"),
+                React.createElement("span", null, isOrg ? item.gap : item.misses.slice(0, 3).join(' · '))),
+            React.createElement("div", { className: "mini-row" },
+                React.createElement("b", null, "Trampa"),
+                React.createElement("span", null, item.trap))));
+}
+function DetailDrawer({ detail, onClose }) {
+    if (!detail)
+        return null;
+    const { item, type } = detail;
+    const isOrg = type === 'organism';
+    const isMech = type === 'mechanism';
+    return React.createElement("aside", { className: "detail-drawer", role: "dialog", "aria-modal": "true", "aria-label": `Detalle ${item.name}` },
+        React.createElement("button", { className: "drawer-close", onClick: onClose, "aria-label": "Cerrar" }, "\u00D7"),
+        React.createElement("div", { className: "pokedex-icon" }, item.icon),
+        React.createElement("h2", { className: "drawer-title" }, item.name),
+        React.createElement("div", { className: "drawer-meta" },
+            React.createElement("span", { className: "pill" },
+                "#",
+                item.dex || item.id),
+            React.createElement("span", { className: "pill" }, isOrg ? item.type : isMech ? 'Mecanismo' : item.family),
+            (item.tags || []).map(t => React.createElement("span", { className: "pill", key: t }, t))),
+        isOrg && React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "S\u00EDndromes"),
+                React.createElement("p", null, item.syndromes)),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Sensible / estrategia"),
+                React.createElement("p", null, item.cover)),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Hueco intr\u00EDnseco"),
+                React.createElement("p", null, item.gap)),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Trampa de guardia"),
+                React.createElement("p", null, item.trap))),
+        !isOrg && !isMech && React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Cubre"),
+                React.createElement("ul", null, item.covers.map(x => React.createElement("li", { key: x }, x)))),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "No cubre / no elegir"),
+                React.createElement("ul", null, item.misses.map(x => React.createElement("li", { key: x }, x)))),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Trampa"),
+                React.createElement("p", null, item.trap))),
+        isMech && React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Pregunta que cambia todo"),
+                React.createElement("p", null, item.question)),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Usar / preferir"),
+                React.createElement("p", null, item.use)),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Evitar"),
+                React.createElement("p", null, item.avoid)),
+            React.createElement("div", { className: "info-block" },
+                React.createElement("h4", null, "Qu\u00E9 pedir a Micro"),
+                React.createElement("p", null, item.micro))));
+}
+function App() {
+    var _a;
+    const [active, setActive] = useState('atlas');
+    const [theme, setTheme] = useState('light');
+    const [query, setQuery] = useState('');
+    const [orgFilter, setOrgFilter] = useState('all');
+    const [detail, setDetail] = useState(null);
+    const [focus, setFocus] = useState('bacteriemia');
+    const [germ, setGerm] = useState('blee');
+    const [severity, setSeverity] = useState('invasiva');
+    const q = normalize(query);
+    const filteredOrganisms = organisms.filter(o => { var _a; return (orgFilter === 'all' || o.group === orgFilter) && normalize([o.name, o.short, o.type, (_a = o.tags) === null || _a === void 0 ? void 0 : _a.join(' '), o.syndromes, o.cover, o.gap, o.trap, o.search].join(' ')).includes(q); });
+    const filteredAntibiotics = antibiotics.filter(a => normalize([a.name, a.family, a.type, a.covers.join(' '), a.misses.join(' '), a.trap, a.search].join(' ')).includes(q));
+    const filteredMechanisms = mechanisms.filter(m => normalize([m.name, m.question, m.use, m.avoid, m.micro, m.search].join(' ')).includes(q));
+    const scenario = getScenario(focus, germ, severity);
+    const openDetail = (item, type) => setDetail({ item, type });
+    return React.createElement("div", { "data-theme": theme, className: "app-shell" },
+        React.createElement("aside", { className: "sidebar" },
+            React.createElement("div", { className: "brand" },
+                React.createElement("div", { className: "brand-mark" }, "PX"),
+                React.createElement("div", null,
+                    React.createElement("strong", null, "PROADEX"),
+                    React.createElement("span", null, "Atlas visual antimicrobiano"))),
+            React.createElement("div", { className: "search-panel" },
+                React.createElement("label", { className: "search-box" },
+                    React.createElement("span", null, "\u2315"),
+                    React.createElement("input", { value: query, onChange: e => setQuery(e.target.value), placeholder: "Buscar: ceftriaxona, AmpC, Listeria..." }))),
+            React.createElement("nav", { className: "nav-list", "aria-label": "Secciones" }, SECTIONS.map(s => React.createElement("button", { key: s.id, className: `nav-btn ${active === s.id ? 'active' : ''}`, onClick: () => setActive(s.id) },
+                React.createElement("span", { className: "nav-ico" }, s.icon),
+                s.label))),
+            React.createElement("div", { className: "side-card" },
+                React.createElement("strong", null, "Regla de uso"),
+                React.createElement("p", null, "Esto es un mapa de decisi\u00F3n y espectro. No incluye dosis. Confirmar siempre con protocolo local, AST, foco, alergias y FG.")),
+            React.createElement("button", { className: "theme-btn", onClick: () => setTheme(theme === 'light' ? 'dark' : 'light') }, theme === 'light' ? 'Modo oscuro' : 'Modo claro')),
+        React.createElement("main", { className: "main" },
+            React.createElement("header", { className: "hero" },
+                React.createElement("section", { className: "hero-card" },
+                    React.createElement("span", { className: "eyebrow" }, "PROA \u00B7 Pok\u00E9dex cl\u00EDnica"),
+                    React.createElement("h1", null, "Atlas visual de antimicrobianos"),
+                    React.createElement("p", { className: "lead" }, "Bacterias, mecanismos y antibi\u00F3ticos convertidos en fichas visuales. La idea: localizar el hueco peligroso antes de elegir el f\u00E1rmaco."),
+                    React.createElement("div", { className: "hero-actions" },
+                        React.createElement("span", { className: "chip" },
+                            React.createElement("strong", null, "LAME"),
+                            " Listeria \u00B7 At\u00EDpicos \u00B7 MRSA \u00B7 Enterococcus"),
+                        React.createElement("span", { className: "chip" },
+                            React.createElement("strong", null, "APE"),
+                            " Ertapenem no Acinetobacter \u00B7 Pseudomonas \u00B7 Enterococcus"),
+                        React.createElement("span", { className: "chip" },
+                            React.createElement("strong", null, "MDR"),
+                            " mecanismo + AST + foco"))),
+                React.createElement("section", { className: "stat-board" },
+                    React.createElement("article", { className: "stat-card" },
+                        React.createElement("em", null, "\uD83E\uDDEB"),
+                        React.createElement("b", null, organisms.length),
+                        React.createElement("span", null, "bacterias/familias visuales")),
+                    React.createElement("article", { className: "stat-card" },
+                        React.createElement("em", null, "\uD83D\uDC8A"),
+                        React.createElement("b", null, antibiotics.length),
+                        React.createElement("span", null, "antibi\u00F3ticos sin dosis, solo espectro y trampas")),
+                    React.createElement("article", { className: "stat-card" },
+                        React.createElement("em", null, "\uD83E\uDDEC"),
+                        React.createElement("b", null, mechanisms.length),
+                        React.createElement("span", null, "mecanismos MDR accionables")))),
+            React.createElement("section", { id: "atlas", className: `section ${active === 'atlas' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "Mapa bacteriano"),
+                        React.createElement("h2", null, "De morfolog\u00EDa a hueco de cobertura"),
+                        React.createElement("p", null, "Haz clic en una ficha para abrir su detalle. El filtro global busca por germen, s\u00EDndrome, antibi\u00F3tico o trampa.")),
+                    React.createElement("div", { className: "toolbar" },
+                        React.createElement("div", { className: "segmented" }, [['all', 'Todo'], ['positive', 'Gram +'], ['negative', 'Gram -'], ['anaerobe', 'Anaerobios'], ['atypical', 'Atípicos']].map(([id, label]) => React.createElement("button", { key: id, className: orgFilter === id ? 'active' : '', onClick: () => setOrgFilter(id) }, label))))),
+                React.createElement("div", { className: "map-row" },
+                    React.createElement("div", { className: "morph-lane" },
+                        React.createElement("h3", null, "Gram +"),
+                        React.createElement("div", { className: "lane-items" }, organisms.filter(o => o.group === 'positive').map(o => React.createElement("button", { className: "lane-chip", key: o.id, onClick: () => openDetail(o, 'organism') }, o.short)))),
+                    React.createElement("div", { className: "morph-lane" },
+                        React.createElement("h3", null, "Gram - / no fermentadores"),
+                        React.createElement("div", { className: "lane-items" }, organisms.filter(o => o.group === 'negative').map(o => React.createElement("button", { className: "lane-chip", key: o.id, onClick: () => openDetail(o, 'organism') }, o.short))))),
+                React.createElement("div", { className: "grid organism-grid" }, filteredOrganisms.map(o => React.createElement(Card, { key: o.id, item: o, type: "organism", onClick: openDetail }))),
+                !filteredOrganisms.length && React.createElement("div", { className: "empty" }, "No hay bacterias que coincidan con la b\u00FAsqueda.")),
+            React.createElement("section", { id: "antibiotics", className: `section ${active === 'antibiotics' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "Pok\u00E9dex antibi\u00F3tica"),
+                        React.createElement("h2", null, "Fichas por espectro, huecos y trampas"),
+                        React.createElement("p", null, "Sin dosis. Cada tarjeta responde: qu\u00E9 cubre, qu\u00E9 no cubre y d\u00F3nde te la puede liar."))),
+                React.createElement("div", { className: "warning-stack" },
+                    React.createElement("article", { className: "warning-card" },
+                        React.createElement("span", { className: "big-letter" }, "C"),
+                        React.createElement("strong", null, "Ceftriaxona no es comod\u00EDn"),
+                        React.createElement("p", null, "No cubre Pseudomonas, Enterococcus, Listeria, SARM ni anaerobios.")),
+                    React.createElement("article", { className: "warning-card" },
+                        React.createElement("span", { className: "big-letter" }, "E"),
+                        React.createElement("strong", null, "Ertapenem tiene APE"),
+                        React.createElement("p", null, "No Acinetobacter, no Pseudomonas, no Enterococcus.")),
+                    React.createElement("article", { className: "warning-card" },
+                        React.createElement("span", { className: "big-letter" }, "F"),
+                        React.createElement("strong", null, "Cefepime exige ri\u00F1\u00F3n"),
+                        React.createElement("p", null, "Buena opci\u00F3n para AmpC/Pseudomonas si sensible, pero neurotoxicidad si no ajustas.")),
+                    React.createElement("article", { className: "warning-card" },
+                        React.createElement("span", { className: "big-letter" }, "M"),
+                        React.createElement("strong", null, "MBL no es KPC"),
+                        React.createElement("p", null, "CAZ-AVI solo no basta; piensa en aztreonam o cefiderocol."))),
+                React.createElement("div", { className: "grid antibiotic-grid" }, filteredAntibiotics.map(a => React.createElement(Card, { key: a.id, item: a, type: "antibiotic", onClick: openDetail }))),
+                !filteredAntibiotics.length && React.createElement("div", { className: "empty" }, "No hay antibi\u00F3ticos que coincidan con la b\u00FAsqueda.")),
+            React.createElement("section", { id: "mechanisms", className: `section ${active === 'mechanisms' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "MDR/XDR"),
+                        React.createElement("h2", null, "Mecanismos que cambian el f\u00E1rmaco"),
+                        React.createElement("p", null, "KPC, OXA-48-like, MBL, DTR, CRAB y Steno no son variantes de \u201Cm\u00E1s amplio\u201D: son mapas distintos."))),
+                React.createElement("div", { className: "grid mechanism-grid" }, filteredMechanisms.map(m => React.createElement("article", { key: m.id, className: `pokedex-card ${toneClass(m.group)}`, onClick: () => openDetail(m, 'mechanism') },
+                    React.createElement("div", { className: "pokedex-top" },
+                        React.createElement("div", null,
+                            React.createElement("div", { className: "dex-id" },
+                                "#",
+                                m.id.toUpperCase()),
+                            React.createElement("span", { className: "type-badge" }, "Mecanismo")),
+                        React.createElement("div", { className: "pokedex-icon" }, m.icon)),
+                    React.createElement("h3", null, m.name),
+                    React.createElement("p", null, m.question),
+                    React.createElement("div", { className: "mini-list" },
+                        React.createElement("div", { className: "mini-row" },
+                            React.createElement("b", null, "Usar"),
+                            React.createElement("span", null, m.use)),
+                        React.createElement("div", { className: "mini-row" },
+                            React.createElement("b", null, "Evitar"),
+                            React.createElement("span", null, m.avoid)),
+                        React.createElement("div", { className: "mini-row" },
+                            React.createElement("b", null, "Micro"),
+                            React.createElement("span", null, m.micro))))))),
+            React.createElement("section", { id: "matrix", className: `section ${active === 'matrix' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "Heatmap"),
+                        React.createElement("h2", null, "Matriz visual de cobertura"),
+                        React.createElement("p", null, "Orientativa: \u201C\u00B1\u201D no significa \u00FAsalo emp\u00EDricamente. En MDR manda especie, mecanismo, foco, CMI y AST."))),
+                React.createElement("div", { className: "legend" },
+                    React.createElement("span", { className: "pill" },
+                        React.createElement("span", { className: "cov yes" }, "\u2713"),
+                        " cubre"),
+                    React.createElement("span", { className: "pill" },
+                        React.createElement("span", { className: "cov maybe" }, "\u00B1"),
+                        " variable / no de elecci\u00F3n"),
+                    React.createElement("span", { className: "pill" },
+                        React.createElement("span", { className: "cov no" }, "\u2717"),
+                        " no cubre")),
+                React.createElement("div", { className: "matrix-wrap" },
+                    React.createElement("table", { className: "coverage-matrix" },
+                        React.createElement("thead", null,
+                            React.createElement("tr", null,
+                                React.createElement("th", null, "F\u00E1rmaco"),
+                                matrixCols.map(c => React.createElement("th", { key: c }, c)))),
+                        React.createElement("tbody", null, matrixRows.map(r => React.createElement("tr", { key: r.drug },
+                            React.createElement("td", null, r.drug),
+                            r.vals.map((v, i) => React.createElement("td", { key: i },
+                                React.createElement("span", { className: `cov ${covClass(v)}` }, covSymbol(v)))))))))),
+            React.createElement("section", { id: "wizard", className: `section ${active === 'wizard' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "Selector cl\u00EDnico simple"),
+                        React.createElement("h2", null, "Foco + germen + gravedad"),
+                        React.createElement("p", null, "No pretende prescribir por ti. Sirve para ense\u00F1ar el razonamiento y recordar huecos."))),
+                React.createElement("div", { className: "wizard" },
+                    React.createElement("section", { className: "wizard-panel" },
+                        React.createElement("div", { className: "field" },
+                            React.createElement("label", null, "Foco"),
+                            React.createElement("select", { value: focus, onChange: e => setFocus(e.target.value) }, focusOptions.map(x => React.createElement("option", { key: x.id, value: x.id }, x.label)))),
+                        React.createElement("div", { className: "field" },
+                            React.createElement("label", null, "Germen o mecanismo"),
+                            React.createElement("select", { value: germ, onChange: e => setGerm(e.target.value) }, germOptions.map(x => React.createElement("option", { key: x.id, value: x.id }, x.label)))),
+                        React.createElement("div", { className: "field" },
+                            React.createElement("label", null, "Gravedad"),
+                            React.createElement("select", { value: severity, onChange: e => setSeverity(e.target.value) }, severityOptions.map(x => React.createElement("option", { key: x.id, value: x.id }, x.label)))),
+                        React.createElement("div", { className: "side-card" },
+                            React.createElement("strong", null, "Mi juicio para tu opci\u00F3n 4"),
+                            React.createElement("p", null, "Lo dejo simple y docente: no calcula dosis ni sustituye PROA; devuelve opciones, huecos y qu\u00E9 pedir."))),
+                    React.createElement("section", { className: "result-panel" },
+                        React.createElement("div", { className: "result-title" },
+                            React.createElement("div", null,
+                                React.createElement("span", { className: "eyebrow" }, "Salida razonada"),
+                                React.createElement("h3", null, scenario.headline)),
+                            React.createElement("span", { className: "pill" }, (_a = severityOptions.find(x => x.id === severity)) === null || _a === void 0 ? void 0 : _a.label)),
+                        React.createElement("div", { className: "case-result" }, scenario.alert),
+                        React.createElement("div", { className: "answer-grid", style: { marginTop: 14 } },
+                            React.createElement("div", { className: "answer-box" },
+                                React.createElement("h4", null, "Hacer / pensar"),
+                                React.createElement("ul", null, scenario.doItems.map(x => React.createElement("li", { key: x }, x)))),
+                            React.createElement("div", { className: "answer-box" },
+                                React.createElement("h4", null, "Evitar"),
+                                React.createElement("ul", null, scenario.avoidItems.map(x => React.createElement("li", { key: x }, x)))),
+                            React.createElement("div", { className: "answer-box" },
+                                React.createElement("h4", null, "Micro / PROA"),
+                                React.createElement("ul", null, scenario.microItems.map(x => React.createElement("li", { key: x }, x)))),
+                            React.createElement("div", { className: "answer-box" },
+                                React.createElement("h4", null, "Salida"),
+                                React.createElement("ul", null,
+                                    React.createElement("li", null, "Reevaluar a 48-72 h con cultivos, evoluci\u00F3n y control de foco."),
+                                    React.createElement("li", null, "Desescalar o pasar a oral activa si estabilidad, sensibilidad y absorci\u00F3n lo permiten."),
+                                    React.createElement("li", null, "Suspender si era colonizaci\u00F3n o no hay s\u00EDndrome infeccioso."))))))),
+            React.createElement("section", { id: "cases", className: `section ${active === 'cases' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "Guardia"),
+                        React.createElement("h2", null, "Trampas visuales"),
+                        React.createElement("p", null, "Mini casos para fijar huecos cl\u00E1sicos. Son deliberadamente cortos."))),
+                React.createElement("div", { className: "case-grid" }, cases.map(c => React.createElement("article", { className: "case-card", key: c.title },
+                    React.createElement("span", { className: "pill" }, "Caso"),
+                    React.createElement("h3", null, c.title),
+                    React.createElement("p", null, c.setup),
+                    React.createElement("div", { className: "case-result" },
+                        React.createElement("strong", null, "Lectura:"),
+                        " ",
+                        c.answer))))),
+            React.createElement("section", { id: "deep", className: `section ${active === 'deep' ? 'active' : ''}` },
+                React.createElement("div", { className: "section-head" },
+                    React.createElement("div", null,
+                        React.createElement("span", { className: "eyebrow" }, "Texto escondido"),
+                        React.createElement("h2", null, "Explicaci\u00F3n completa, plegada"),
+                        React.createElement("p", null, "Mantengo la sustancia en desplegables para no romper la lectura visual. No incluyo dosis por tu elecci\u00F3n."))),
+                deepSections.map(s => React.createElement("details", { className: "source-details", key: s.title },
+                    React.createElement("summary", null, s.title),
+                    React.createElement("ul", null, s.body.map(x => React.createElement("li", { key: x }, x))))),
+                React.createElement("details", { className: "source-details" },
+                    React.createElement("summary", null, "Listado compacto de huecos que obligan a combinar"),
+                    React.createElement("ul", null,
+                        React.createElement("li", null, "Ceftriaxona + foco abdominal: a\u00F1adir metronidazol si hay anaerobios."),
+                        React.createElement("li", null, "Cefepime/ceftazidima + intraabdominal: no cubren anaerobios ni Enterococcus."),
+                        React.createElement("li", null, "Aztreonam en alergia grave: a\u00F1adir cobertura grampositiva y anaerobia si el foco lo exige; evitarlo si alergia confirmada a ceftazidima."),
+                        React.createElement("li", null, "Pseudomonas MDR, CRE, MBL, CRAB o Stenotrophomonas: manejo dirigido y consulta.")))),
+            React.createElement("p", { className: "print-note" }, "Versi\u00F3n imprimible generada desde PROADEX. No incluye dosis."),
+            React.createElement(DetailDrawer, { detail: detail, onClose: () => setDetail(null) })));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+
+</script>
+</body>
+</html>
