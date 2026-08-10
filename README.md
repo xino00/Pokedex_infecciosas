@@ -10,7 +10,7 @@ Repositorio: <https://github.com/xino00/Pokedex_infecciosas>
 
 ## Que contiene
 
-`index.html` es una aplicacion React autocontenida en un unico archivo HTML. No necesita compilacion ni instalacion local.
+Es una aplicacion estatica modular, sin framework ni compilacion. No descarga codigo de terceros en produccion.
 
 La pagina incluye:
 
@@ -24,16 +24,7 @@ La pagina incluye:
 
 ## Uso local
 
-Abre `index.html` en el navegador.
-
-La aplicacion carga React 18 desde CDN:
-
-- <https://unpkg.com/react@18/umd/react.development.js>
-- <https://unpkg.com/react-dom@18/umd/react-dom.development.js>
-
-Por eso necesita conexion a internet si se abre directamente como archivo local. Si React no carga, la pagina muestra un aviso inicial.
-
-Tambien puede servirse como web estatica:
+Sirve la carpeta como web estatica:
 
 ```bash
 python3 -m http.server
@@ -45,13 +36,34 @@ Y abrir:
 http://localhost:8000/
 ```
 
+No necesita conexion a internet. Se recomienda el servidor local porque los navegadores restringen los modulos JavaScript cuando se abre un archivo directamente con `file://`.
+
+## Verificacion
+
+No es necesario instalar dependencias. Para validar fuentes, IDs, cobertura y las 252 combinaciones del selector:
+
+```bash
+npm test
+```
+
 ## Estructura
 
 ```text
 .
-├── index.html
-└── README.md
+├── index.html               # Estructura semantica
+├── styles.css               # Presentacion
+├── src/
+│   ├── app.js               # Interfaz y eventos
+│   ├── catalog.js           # Fichas y contenido docente
+│   ├── coverage.js          # Fuente canonica de la matriz
+│   ├── rules.js             # Reglas clinicas declarativas
+│   ├── selectors.js         # Busqueda y vistas derivadas
+│   ├── sources.js           # Metadatos y enlaces de fuentes
+│   └── validate.js          # Invariantes del dominio
+└── tests/                   # Pruebas de reglas, matriz y validacion
 ```
+
+El selector diferencia entre una regla especifica de foco/gravedad y una orientacion general por germen. Esta ultima queda marcada en pantalla para no aparentar una precision que no esta modelada.
 
 ## Limites clinicos
 
