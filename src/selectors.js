@@ -66,7 +66,9 @@ export function buildMatrix() {
       COVERAGE.map((entry) =>
         Object.freeze({
           id: entry.id,
+          catalogId: entry.catalogId,
           label: entry.label,
+          group: entry.group,
           cells: Object.freeze(
             COVERAGE_TARGETS.map((target) => {
               const level = entry.values[target.id];

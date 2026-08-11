@@ -2,9 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  AUDITED_SCENARIOS,
   FOCUS_OPTIONS,
   GERM_OPTIONS,
   SEVERITY_OPTIONS,
+  getAuditedFocusOptions,
+  getAuditedGermOptions,
+  getAuditedSeverityOptions,
+  isAuditedScenario,
   resolveScenario,
 } from "../src/rules.js";
 
@@ -54,6 +59,26 @@ test("el selector declara cuándo solo existe orientación por germen", () => {
   const result = resolveScenario({ focus: "piel", germ: "kpc", severity: "estable" });
   assert.equal(result.scope, "germ-only");
   assert.match(result.alert, /no dispone de una regla específica/i);
+});
+
+test("la interfaz solo ofrece rutas con regla clínica específica", () => {
+  assert.ok(AUDITED_SCENARIOS.length > 0);
+  assert.ok(AUDITED_SCENARIOS.length < 252);
+  assert.ok(AUDITED_SCENARIOS.every((input) => isAuditedScenario(input)));
+  assert.ok(AUDITED_SCENARIOS.every((input) => resolveScenario(input)?.scope === "specific"));
+  assert.equal(
+    isAuditedScenario({ germ: "blee", focus: "cistitis", severity: "invasiva" }),
+    false,
+  );
+});
+
+test("los desplegables auditados se derivan en cascada", () => {
+  assert.deepEqual(getAuditedGermOptions().map(({ id }) => id), ["blee", "sarm", "enterolisteria"]);
+  assert.deepEqual(getAuditedFocusOptions("sarm").map(({ id }) => id), ["resp"]);
+  assert.deepEqual(
+    getAuditedSeverityOptions("enterolisteria", "snc").map(({ id }) => id),
+    ["estable", "invasiva", "critico"],
+  );
 });
 
 test("SARM respiratorio selecciona la excepción de foco", () => {

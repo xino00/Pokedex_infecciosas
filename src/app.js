@@ -8,9 +8,11 @@ import {
   SECTIONS,
 } from "./catalog.js";
 import {
-  FOCUS_OPTIONS,
-  GERM_OPTIONS,
   SEVERITY_OPTIONS,
+  getAuditedFocusOptions,
+  getAuditedGermOptions,
+  getAuditedSeverityOptions,
+  isAuditedScenario,
   resolveScenario,
 } from "./rules.js";
 import {
@@ -24,18 +26,23 @@ import {
 import { SOURCES, getSources } from "./sources.js";
 import { assertDataIsValid } from "./validate.js";
 
+const MATRIX = buildMatrix();
+const DEFAULT_SCENARIO = Object.freeze({ germ: "blee", focus: "bacteriemia", severity: "invasiva" });
+const DEFAULT_SCANNER = "ceftriaxone";
+
 const state = {
   activeSection: "atlas",
   theme: readStoredTheme(),
   query: "",
   organismFilter: "all",
-  focus: "bacteriemia",
-  germ: "blee",
-  severity: "invasiva",
+  scannerDrug: DEFAULT_SCANNER,
+  ...DEFAULT_SCENARIO,
+  detail: null,
 };
 
 try {
   assertDataIsValid();
+  hydrateStateFromHash();
   start();
 } catch (error) {
   renderFatalError(error);
@@ -49,6 +56,7 @@ function start() {
 
   renderNavigation();
   renderSelectorOptions();
+  renderScanner();
   renderMorphologyLanes();
   renderMatrix();
   renderCases();
@@ -58,6 +66,8 @@ function start() {
   renderThemeButton();
   renderCatalogs();
   renderScenario();
+  applyActiveSection();
+  openDetailFromState();
 }
 
 function bindEvents() {
@@ -83,17 +93,37 @@ function bindEvents() {
     renderThemeButton();
   });
 
-  document.querySelector("#focus-select").addEventListener("change", (event) => {
-    state.focus = event.target.value;
-    renderScenario();
+  document.querySelectorAll("[data-go-section]").forEach((button) => {
+    button.addEventListener("click", () => activateSection(button.dataset.goSection));
   });
+
   document.querySelector("#germ-select").addEventListener("change", (event) => {
     state.germ = event.target.value;
+    renderSelectorOptions();
     renderScenario();
+    syncUrl();
+  });
+  document.querySelector("#focus-select").addEventListener("change", (event) => {
+    state.focus = event.target.value;
+    renderSelectorOptions();
+    renderScenario();
+    syncUrl();
   });
   document.querySelector("#severity-select").addEventListener("change", (event) => {
     state.severity = event.target.value;
     renderScenario();
+    syncUrl();
+  });
+
+  document.querySelector("#scanner-drug").addEventListener("change", (event) => {
+    state.scannerDrug = event.target.value;
+    renderScanner();
+    syncUrl();
+  });
+  document.querySelector("#scanner-open").addEventListener("click", () => {
+    const row = MATRIX.rows.find(({ id }) => id === state.scannerDrug);
+    const antibiotic = ANTIBIOTICS.find(({ id }) => id === row?.catalogId);
+    if (antibiotic) openDetail(antibiotic, "antibiotic");
   });
 
   const dialog = document.querySelector("#detail-dialog");
@@ -101,45 +131,101 @@ function bindEvents() {
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
   });
+  dialog.addEventListener("close", () => {
+    if (!state.detail) return;
+    state.detail = null;
+    syncUrl();
+  });
+
+  window.addEventListener("hashchange", () => {
+    resetShareableState();
+    hydrateStateFromHash();
+    renderNavigation();
+    renderSelectorOptions();
+    renderScanner();
+    renderScenario();
+    applyActiveSection();
+    openDetailFromState();
+  });
 }
 
 function renderNavigation() {
   const navigation = document.querySelector("#section-navigation");
   navigation.replaceChildren(
-    ...SECTIONS.map((section) => {
+    ...SECTIONS.map((section, index) => {
       const button = element("button", {
         className: `nav-btn${section.id === state.activeSection ? " active" : ""}`,
         attrs: { type: "button", "aria-controls": section.id },
       });
       button.append(
-        element("span", { className: "nav-ico", text: section.icon, attrs: { "aria-hidden": "true" } }),
-        document.createTextNode(section.label),
+        element("span", {
+          className: "nav-index",
+          text: String(index + 1).padStart(2, "0"),
+          attrs: { "aria-hidden": "true" },
+        }),
+        element("span", { text: section.label }),
       );
+      if (section.id === state.activeSection) button.setAttribute("aria-current", "page");
       button.addEventListener("click", () => activateSection(section.id));
       return button;
     }),
   );
+  centerActiveNavigationItem(navigation);
 }
 
-function activateSection(sectionId) {
+function centerActiveNavigationItem(navigation) {
+  if (!window.matchMedia("(max-width: 900px)").matches) return;
+  const activeButton = navigation.querySelector(".nav-btn.active");
+  if (!activeButton) return;
+  window.requestAnimationFrame(() => {
+    navigation.scrollTo({
+      left: activeButton.offsetLeft - navigation.clientWidth / 2 + activeButton.clientWidth / 2,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  });
+}
+
+function activateSection(sectionId, { scroll = true } = {}) {
+  if (!SECTIONS.some(({ id }) => id === sectionId)) return;
   state.activeSection = sectionId;
+  state.detail = null;
+  const dialog = document.querySelector("#detail-dialog");
+  if (dialog.open) dialog.close();
+  applyActiveSection();
+  renderNavigation();
+  syncUrl();
+  if (scroll) {
+    document.querySelector(`#${sectionId}`).scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+}
+
+function applyActiveSection() {
   document.querySelectorAll(".section").forEach((section) => {
-    section.classList.toggle("active", section.id === sectionId);
+    section.classList.toggle("active", section.id === state.activeSection);
   });
-  document.querySelectorAll(".nav-btn").forEach((button, index) => {
-    const isActive = SECTIONS[index].id === sectionId;
-    button.classList.toggle("active", isActive);
-    if (isActive) button.setAttribute("aria-current", "page");
-    else button.removeAttribute("aria-current");
-  });
-  document.querySelector("#detail-dialog").close();
-  document.querySelector("main").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ensureSelectorState() {
+  const germs = getAuditedGermOptions();
+  if (!germs.some(({ id }) => id === state.germ)) state.germ = germs[0].id;
+
+  const focuses = getAuditedFocusOptions(state.germ);
+  if (!focuses.some(({ id }) => id === state.focus)) state.focus = focuses[0].id;
+
+  const severities = getAuditedSeverityOptions(state.germ, state.focus);
+  if (!severities.some(({ id }) => id === state.severity)) state.severity = severities[0].id;
+
+  return { germs, focuses, severities };
 }
 
 function renderSelectorOptions() {
-  fillSelect(document.querySelector("#focus-select"), FOCUS_OPTIONS, state.focus);
-  fillSelect(document.querySelector("#germ-select"), GERM_OPTIONS, state.germ);
-  fillSelect(document.querySelector("#severity-select"), SEVERITY_OPTIONS, state.severity);
+  const { germs, focuses, severities } = ensureSelectorState();
+  fillSelect(document.querySelector("#germ-select"), germs, state.germ);
+  fillSelect(document.querySelector("#focus-select"), focuses, state.focus);
+  fillSelect(document.querySelector("#severity-select"), severities, state.severity);
 }
 
 function fillSelect(select, options, selectedId) {
@@ -150,6 +236,42 @@ function fillSelect(select, options, selectedId) {
       return optionElement;
     }),
   );
+}
+
+function renderScanner() {
+  const select = document.querySelector("#scanner-drug");
+  fillSelect(select, MATRIX.rows.map(({ id, label }) => ({ id, label })), state.scannerDrug);
+
+  const row = MATRIX.rows.find(({ id }) => id === state.scannerDrug) ?? MATRIX.rows[0];
+  state.scannerDrug = row.id;
+  select.value = row.id;
+
+  document.querySelector("#scanner-strip").replaceChildren(
+    ...row.cells.map((cell, index) => {
+      const target = MATRIX.columns[index];
+      const item = element("div", {
+        className: `scanner-cell is-${cell.level}`,
+        attrs: {
+          role: "listitem",
+          title: `${target.label}: ${coverageTitle(cell.level)}`,
+          "aria-label": `${target.label}: ${coverageTitle(cell.level)}`,
+        },
+      });
+      item.append(
+        element("span", { className: "scanner-target", text: target.shortLabel }),
+        element("strong", { className: `cov ${cell.level}`, text: cell.symbol, attrs: { "aria-hidden": "true" } }),
+      );
+      return item;
+    }),
+  );
+
+  const antibiotic = ANTIBIOTICS.find(({ id }) => id === row.catalogId);
+  const summary = document.querySelector("#scanner-summary");
+  summary.replaceChildren(
+    element("strong", { text: "Trampa: " }),
+    document.createTextNode(antibiotic?.trap ?? "Revisar la ficha y el protocolo local."),
+  );
+  document.querySelector("#scanner-open").disabled = !antibiotic;
 }
 
 function renderMorphologyLanes() {
@@ -186,7 +308,7 @@ function renderCatalogs() {
 
   const status = document.querySelector("#search-status");
   status.textContent = state.query.trim()
-    ? `${organisms.length} bacterias · ${antibiotics.length} antibióticos · ${mechanisms.length} mecanismos`
+    ? `${organisms.length} patógenos · ${antibiotics.length} fármacos · ${mechanisms.length} mecanismos`
     : "";
 }
 
@@ -205,9 +327,9 @@ function renderCatalogCard(item, type) {
     attrs: { type: "button", "aria-label": `Abrir detalle de ${item.name}` },
   });
   card.append(
-    renderCardTop(item, item.type),
+    renderCardTop(item, item.type, type),
     element("h3", { text: item.short || item.name }),
-    element("p", { text: isOrganism ? item.syndromes : item.family }),
+    element("p", { className: "card-subtitle", text: isOrganism ? item.syndromes : item.family }),
     renderMiniList([
       ["Cubre", isOrganism ? item.cover : item.covers.slice(0, 3).join(" · ")],
       ["Hueco", isOrganism ? item.gap : item.misses.slice(0, 3).join(" · ")],
@@ -224,9 +346,9 @@ function renderMechanismCard(mechanism) {
     attrs: { type: "button", "aria-label": `Abrir detalle de ${mechanism.name}` },
   });
   card.append(
-    renderCardTop({ ...mechanism, dex: mechanism.id.toUpperCase() }, "Mecanismo"),
+    renderCardTop({ ...mechanism, dex: mechanism.id.toUpperCase() }, "Mecanismo", "mechanism"),
     element("h3", { text: mechanism.name }),
-    element("p", { text: mechanism.question }),
+    element("p", { className: "card-subtitle", text: mechanism.question }),
     renderMiniList([
       ["Usar", mechanism.use],
       ["Evitar", mechanism.avoid],
@@ -237,15 +359,31 @@ function renderMechanismCard(mechanism) {
   return card;
 }
 
-function renderCardTop(item, badge) {
-  const metadata = element("div");
+function renderCardTop(item, badge, visualType) {
+  const metadata = element("div", { className: "card-metadata" });
   metadata.append(
     element("div", { className: "dex-id", text: `#${item.dex}` }),
     element("span", { className: "type-badge", text: badge }),
   );
   const top = element("div", { className: "pokedex-top" });
-  top.append(metadata, element("div", { className: "pokedex-icon", text: item.icon, attrs: { "aria-hidden": "true" } }));
+  top.append(metadata, renderClinicalGlyph(visualType, item));
   return top;
+}
+
+function renderClinicalGlyph(type, item) {
+  const glyph = element("span", {
+    className: `clinical-glyph glyph-${type} ${glyphShape(item)}`,
+    attrs: { "aria-hidden": "true" },
+  });
+  glyph.append(element("span"), element("span"), element("span"));
+  return glyph;
+}
+
+function glyphShape(item) {
+  const description = `${item.type ?? ""} ${item.name ?? ""}`.toLowerCase();
+  if (description.includes("coco") || description.includes("staph") || description.includes("strep")) return "shape-cocci";
+  if (description.includes("bacil") || description.includes("entero") || description.includes("pseudomonas")) return "shape-rods";
+  return "shape-mixed";
 }
 
 function renderMiniList(rows) {
@@ -260,7 +398,7 @@ function renderMiniList(rows) {
   return list;
 }
 
-function openDetail(item, type) {
+function openDetail(item, type, { updateUrl = true } = {}) {
   const content = document.querySelector("#detail-content");
   const isOrganism = type === "organism";
   const isMechanism = type === "mechanism";
@@ -304,15 +442,37 @@ function openDetail(item, type) {
   sourcesBlock.append(sourcesList);
 
   content.replaceChildren(
-    element("div", { className: "pokedex-icon", text: item.icon, attrs: { "aria-hidden": "true" } }),
+    renderClinicalGlyph(type, item),
     element("h2", { id: "detail-title", className: "drawer-title", text: item.name }),
     metadata,
     ...blocks,
     sourcesBlock,
   );
 
+  state.detail = { type, id: item.id };
+  if (updateUrl) syncUrl();
   const dialog = document.querySelector("#detail-dialog");
   if (!dialog.open) dialog.showModal();
+}
+
+function openDetailFromState() {
+  const dialog = document.querySelector("#detail-dialog");
+  if (!state.detail) {
+    if (dialog.open) dialog.close();
+    return;
+  }
+  const item = findDetailItem(state.detail.type, state.detail.id);
+  if (!item) {
+    state.detail = null;
+    syncUrl();
+    return;
+  }
+  openDetail(item, state.detail.type, { updateUrl: false });
+}
+
+function findDetailItem(type, id) {
+  const collections = { organism: ORGANISMS, antibiotic: ANTIBIOTICS, mechanism: MECHANISMS };
+  return collections[type]?.find((item) => item.id === id) ?? null;
 }
 
 function infoBlock(title, text) {
@@ -330,33 +490,53 @@ function infoListBlock(title, items) {
 }
 
 function renderMatrix() {
-  const matrix = buildMatrix();
   const headingRow = element("tr");
-  headingRow.append(
-    element("th", { text: "Fármaco", attrs: { scope: "col" } }),
-    ...matrix.columns.map((column) => element("th", { text: column.label, attrs: { scope: "col" } })),
-  );
+  headingRow.append(element("th", { text: "Fármaco", attrs: { scope: "col" } }));
+  for (const column of MATRIX.columns) {
+    const heading = element("th", { attrs: { scope: "col", title: column.label } });
+    heading.append(element("abbr", { text: column.shortLabel, attrs: { title: column.label } }));
+    headingRow.append(heading);
+  }
   document.querySelector("#matrix-head").replaceChildren(headingRow);
-  document.querySelector("#matrix-body").replaceChildren(
-    ...matrix.rows.map((row) => {
-      const tableRow = element("tr");
-      tableRow.append(
-        element("td", { text: row.label }),
-        ...row.cells.map((cell) => {
-          const tableCell = element("td");
-          tableCell.append(
-            element("span", {
-              className: `cov ${cell.level}`,
-              text: cell.symbol,
-              attrs: { title: coverageTitle(cell.level), "aria-label": coverageTitle(cell.level) },
-            }),
-          );
-          return tableCell;
+
+  let previousGroup = null;
+  const bodyRows = [];
+  for (const row of MATRIX.rows) {
+    if (row.group !== previousGroup) {
+      const groupRow = element("tr", { className: "matrix-group" });
+      groupRow.append(
+        element("th", {
+          text: row.group,
+          attrs: { scope: "rowgroup" },
+        }),
+        element("td", { attrs: { colspan: MATRIX.columns.length, "aria-hidden": "true" } }),
+      );
+      bodyRows.push(groupRow);
+      previousGroup = row.group;
+    }
+
+    const tableRow = element("tr");
+    const rowHeading = element("th", { attrs: { scope: "row" } });
+    const antibiotic = ANTIBIOTICS.find(({ id }) => id === row.catalogId);
+    const rowButton = element("button", { className: "matrix-drug", text: row.label, attrs: { type: "button" } });
+    if (antibiotic) rowButton.addEventListener("click", () => openDetail(antibiotic, "antibiotic"));
+    else rowButton.disabled = true;
+    rowHeading.append(rowButton);
+    tableRow.append(rowHeading);
+    for (const cell of row.cells) {
+      const tableCell = element("td");
+      tableCell.append(
+        element("span", {
+          className: `cov ${cell.level}`,
+          text: cell.symbol,
+          attrs: { title: coverageTitle(cell.level), "aria-label": coverageTitle(cell.level) },
         }),
       );
-      return tableRow;
-    }),
-  );
+      tableRow.append(tableCell);
+    }
+    bodyRows.push(tableRow);
+  }
+  document.querySelector("#matrix-body").replaceChildren(...bodyRows);
 }
 
 function coverageTitle(level) {
@@ -364,34 +544,32 @@ function coverageTitle(level) {
 }
 
 function renderScenario() {
-  const scenario = resolveScenario({ focus: state.focus, germ: state.germ, severity: state.severity });
-  if (!scenario) throw new Error("No se pudo resolver el escenario seleccionado.");
+  const input = { focus: state.focus, germ: state.germ, severity: state.severity };
+  if (!isAuditedScenario(input)) throw new Error("El selector intentó mostrar una ruta no auditada.");
+  const scenario = resolveScenario(input);
+  if (!scenario?.ruleId || scenario.scope !== "specific") {
+    throw new Error("No se pudo resolver la regla específica seleccionada.");
+  }
 
   setText("scenario-headline", scenario.headline);
   setText("severity-pill", optionLabel(SEVERITY_OPTIONS, state.severity));
   setText("scenario-alert", scenario.alert);
+  setText("scenario-scope", "Ruta auditada");
+  setText("route-summary", `Regla ${scenario.ruleId} · ${optionLabel(getAuditedFocusOptions(state.germ), state.focus)}.`);
   renderTextList("scenario-do", scenario.doItems);
   renderTextList("scenario-avoid", scenario.avoidItems);
   renderTextList("scenario-micro", scenario.microItems);
   renderSourceList(document.querySelector("#scenario-sources"), scenario.sourceIds);
-
-  const scope = document.querySelector("#scenario-scope");
-  scope.className = `pill scenario-scope ${scenario.scope}`;
-  scope.textContent = {
-    specific: "Regla específica",
-    contextual: "Regla de contexto",
-    "germ-only": "Orientación por germen",
-  }[scenario.scope];
 }
 
 function renderCases() {
   document.querySelector("#case-grid").replaceChildren(
-    ...CASES.map((clinicalCase) => {
+    ...CASES.map((clinicalCase, index) => {
       const card = element("article", { className: "case-card" });
       const result = element("div", { className: "case-result" });
       result.append(element("strong", { text: "Lectura:" }), document.createTextNode(` ${clinicalCase.answer}`));
       card.append(
-        element("span", { className: "pill", text: "Caso" }),
+        element("span", { className: "case-index", text: String(index + 1).padStart(2, "0") }),
         element("h3", { text: clinicalCase.title }),
         element("p", { text: clinicalCase.setup }),
         result,
@@ -444,7 +622,56 @@ function renderTextList(id, items) {
 }
 
 function renderThemeButton() {
-  setText("theme-button", state.theme === "light" ? "Modo oscuro" : "Modo claro");
+  setText("theme-label", state.theme === "light" ? "Oscuro" : "Claro");
+  setText("theme-symbol", state.theme === "light" ? "◐" : "☼");
+  document.querySelector("#theme-button").setAttribute(
+    "aria-label",
+    state.theme === "light" ? "Activar tema oscuro" : "Activar tema claro",
+  );
+  document.querySelector('meta[name="theme-color"]').content = state.theme === "light" ? "#f2f5f7" : "#0a111c";
+}
+
+function hydrateStateFromHash() {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const view = params.get("view");
+  if (SECTIONS.some(({ id }) => id === view)) state.activeSection = view;
+
+  const scannerDrug = params.get("scanner");
+  if (MATRIX.rows.some(({ id }) => id === scannerDrug)) state.scannerDrug = scannerDrug;
+
+  const scenario = {
+    germ: params.get("germ"),
+    focus: params.get("focus"),
+    severity: params.get("severity"),
+  };
+  if (isAuditedScenario(scenario)) Object.assign(state, scenario);
+
+  const detailValue = params.get("detail");
+  if (detailValue) {
+    const [type, id] = detailValue.split(":");
+    if (findDetailItem(type, id)) state.detail = { type, id };
+  }
+}
+
+function resetShareableState() {
+  state.activeSection = "atlas";
+  state.scannerDrug = DEFAULT_SCANNER;
+  Object.assign(state, DEFAULT_SCENARIO);
+  state.detail = null;
+}
+
+function syncUrl() {
+  const params = new URLSearchParams();
+  if (state.activeSection !== "atlas") params.set("view", state.activeSection);
+  if (state.scannerDrug !== DEFAULT_SCANNER) params.set("scanner", state.scannerDrug);
+  if (state.activeSection === "wizard") {
+    params.set("germ", state.germ);
+    params.set("focus", state.focus);
+    params.set("severity", state.severity);
+  }
+  if (state.detail) params.set("detail", `${state.detail.type}:${state.detail.id}`);
+  const hash = params.toString();
+  window.history.replaceState(null, "", hash ? `#${hash}` : `${window.location.pathname}${window.location.search}`);
 }
 
 function setText(id, value) {
@@ -464,10 +691,12 @@ function element(tagName, options = {}) {
 
 function readStoredTheme() {
   try {
-    return localStorage.getItem("proadex-theme") === "dark" ? "dark" : "light";
+    const stored = localStorage.getItem("proadex-theme");
+    if (stored === "dark" || stored === "light") return stored;
   } catch {
-    return "light";
+    // La preferencia del sistema sigue disponible sin almacenamiento local.
   }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function storeTheme(theme) {
@@ -476,6 +705,10 @@ function storeTheme(theme) {
   } catch {
     // La preferencia no es esencial si el navegador bloquea almacenamiento local.
   }
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
 
 function renderFatalError(error) {

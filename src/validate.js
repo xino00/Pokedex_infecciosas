@@ -2,12 +2,14 @@ import { ANTIBIOTICS, CASES, MECHANISMS, ORGANISMS, SECTIONS } from "./catalog.j
 import { COVERAGE, COVERAGE_LEVELS, COVERAGE_TARGETS } from "./coverage.js";
 import {
   CONTEXT_RULES,
+  AUDITED_SCENARIOS,
   FOCUS_OPTIONS,
   GERM_GUIDANCE,
   GERM_OPTIONS,
   SCENARIO_RULES,
   SEVERITY_OPTIONS,
   getTopMatchingRules,
+  isAuditedScenario,
   resolveScenario,
 } from "./rules.js";
 import { SOURCES } from "./sources.js";
@@ -32,6 +34,10 @@ export function validateData() {
   checkUniqueIds(errors, "filas de cobertura", COVERAGE);
   checkUniqueIds(errors, "columnas de cobertura", COVERAGE_TARGETS);
 
+  if (!AUDITED_SCENARIOS.length) {
+    errors.push("No existe ninguna ruta clínica auditada para el selector.");
+  }
+
   checkSourceReferences(errors, "organismo", ORGANISMS, sourceIds);
   checkSourceReferences(errors, "antibiótico", ANTIBIOTICS, sourceIds);
   checkSourceReferences(errors, "mecanismo", MECHANISMS, sourceIds);
@@ -55,6 +61,9 @@ export function validateData() {
   const targetIds = COVERAGE_TARGETS.map(({ id }) => id);
   const validLevels = new Set(COVERAGE_LEVELS);
   for (const row of COVERAGE) {
+    if (!row.group) {
+      errors.push(`Cobertura ${row.id}: falta el grupo terapéutico.`);
+    }
     if (!antibioticIds.has(row.catalogId)) {
       errors.push(`Cobertura ${row.id}: catalogId inexistente (${row.catalogId}).`);
     }
@@ -108,6 +117,18 @@ export function validateData() {
           errors.push(`Escenario sin salida: ${focus.id}/${germ.id}/${severity.id}.`);
         }
       }
+    }
+  }
+
+  const reachableRuleIds = new Set(AUDITED_SCENARIOS.map((input) => resolveScenario(input)?.ruleId));
+  for (const rule of SCENARIO_RULES) {
+    if (!reachableRuleIds.has(rule.id)) {
+      errors.push(`Regla ${rule.id}: no es alcanzable desde ninguna ruta auditada.`);
+    }
+  }
+  for (const input of AUDITED_SCENARIOS) {
+    if (!isAuditedScenario(input) || !resolveScenario(input)?.ruleId) {
+      errors.push(`Ruta auditada inválida: ${input.germ}/${input.focus}/${input.severity}.`);
     }
   }
 

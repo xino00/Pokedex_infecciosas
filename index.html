@@ -3,30 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#132238" />
   <title>PROADEX · Atlas visual de antimicrobianos</title>
   <meta name="description" content="Atlas visual de espectro antimicrobiano, gramnegativos resistentes y trampas PROA para guardia y estudio." />
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
   <noscript>
     <p class="fatal-error">PROADEX necesita JavaScript para filtrar el atlas y resolver las reglas clínicas.</p>
   </noscript>
 
   <div id="app" class="app-shell">
     <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">PX</div>
-        <div>
-          <strong>PROADEX</strong>
-          <span>Atlas visual antimicrobiano</span>
+      <div class="brand-row">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span>PX</span></div>
+          <div>
+            <strong>PROADEX</strong>
+            <span>Antibiograma de bolsillo</span>
+          </div>
         </div>
+        <button id="theme-button" class="theme-btn" type="button" aria-label="Cambiar tema de color">
+          <span id="theme-symbol" aria-hidden="true">◐</span>
+          <span id="theme-label">Oscuro</span>
+        </button>
       </div>
 
       <div class="search-panel">
         <label class="search-box" for="global-search">
           <span aria-hidden="true">⌕</span>
-          <input id="global-search" type="search" placeholder="Buscar: ceftriaxona, AmpC, Listeria..." autocomplete="off" />
+          <input id="global-search" type="search" placeholder="Ceftriaxona, AmpC, Listeria…" autocomplete="off" />
         </label>
         <p id="search-status" class="search-status" aria-live="polite"></p>
       </div>
@@ -34,43 +43,60 @@
       <nav id="section-navigation" class="nav-list" aria-label="Secciones"></nav>
 
       <div class="side-card">
-        <strong>Regla de uso</strong>
-        <p>Esto es un mapa de decisión y espectro. No incluye dosis. Confirmar siempre con protocolo local, AST, foco, alergias y FG.</p>
+        <span class="utility-label">Límite clínico</span>
+        <strong>Mapa de espectro, no pauta.</strong>
+        <p>Sin dosis. Confirmar protocolo local, AST, foco, alergias y función renal.</p>
       </div>
-      <button id="theme-button" class="theme-btn" type="button">Modo oscuro</button>
     </aside>
 
-    <main class="main">
-      <header class="hero">
-        <section class="hero-card">
-          <span class="eyebrow">PROA · Pokédex clínica</span>
-          <h1>Atlas visual de antimicrobianos</h1>
-          <p class="lead">Bacterias, mecanismos y antibióticos convertidos en fichas visuales. La idea: localizar el hueco peligroso antes de elegir el fármaco.</p>
-          <div class="hero-actions">
-            <span class="chip"><strong>LAME</strong> Listeria · Atípicos · MRSA · Enterococcus</span>
-            <span class="chip"><strong>APE</strong> Ertapenem no Acinetobacter · Pseudomonas · Enterococcus</span>
-            <span class="chip"><strong>MDR</strong> mecanismo + AST + foco</span>
+    <main id="main-content" class="main">
+      <header class="instrument-header">
+        <div class="instrument-copy">
+          <span class="eyebrow">PROA · ATLAS OPERATIVO</span>
+          <h1>Encuentra el hueco antes de prescribir.</h1>
+          <p class="lead">Compara espectro, abre la ficha y fuerza la pregunta incómoda: ¿qué patógeno importante se queda fuera?</p>
+          <div class="header-actions">
+            <button class="text-action" type="button" data-go-section="matrix">Abrir matriz <span aria-hidden="true">→</span></button>
+            <button class="text-action" type="button" data-go-section="wizard">Ir a rutas auditadas <span aria-hidden="true">→</span></button>
           </div>
-        </section>
-        <section class="stat-board" aria-label="Contenido del atlas">
-          <article class="stat-card"><em aria-hidden="true">🧫</em><b id="organism-count">0</b><span>bacterias/familias visuales</span></article>
-          <article class="stat-card"><em aria-hidden="true">💊</em><b id="antibiotic-count">0</b><span>antibióticos sin dosis, solo espectro y trampas</span></article>
-          <article class="stat-card"><em aria-hidden="true">🧬</em><b id="mechanism-count">0</b><span>mecanismos MDR accionables</span></article>
-        </section>
+        </div>
+        <dl class="atlas-index" aria-label="Contenido del atlas">
+          <div><dt id="organism-count">0</dt><dd>patógenos</dd></div>
+          <div><dt id="antibiotic-count">0</dt><dd>fármacos</dd></div>
+          <div><dt id="mechanism-count">0</dt><dd>mecanismos</dd></div>
+        </dl>
       </header>
+
+      <section class="spectrum-scanner" aria-labelledby="scanner-title">
+        <div class="scanner-head">
+          <div>
+            <span class="eyebrow">ESCÁNER DE ESPECTRO</span>
+            <h2 id="scanner-title">Una fila, todos sus huecos.</h2>
+          </div>
+          <label class="scanner-picker" for="scanner-drug">
+            <span>Antibiótico</span>
+            <select id="scanner-drug"></select>
+          </label>
+        </div>
+        <div id="scanner-strip" class="scanner-strip" role="list" aria-label="Cobertura del antibiótico seleccionado"></div>
+        <div class="scanner-foot">
+          <p id="scanner-summary"></p>
+          <button id="scanner-open" class="quiet-action" type="button">Abrir ficha completa</button>
+        </div>
+      </section>
 
       <section id="atlas" class="section active">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Mapa bacteriano</span>
+            <span class="eyebrow">MAPA BACTERIANO</span>
             <h2>De morfología a hueco de cobertura</h2>
-            <p>Haz clic en una ficha para abrir su detalle. El filtro global busca por germen, síndrome, antibiótico o trampa.</p>
+            <p>Abre una ficha para revisar síndrome, estrategia, resistencia intrínseca y trampa de guardia.</p>
           </div>
           <div class="toolbar">
             <div id="organism-filters" class="segmented" aria-label="Filtrar atlas">
               <button type="button" class="active" data-filter="all">Todo</button>
               <button type="button" data-filter="positive">Gram +</button>
-              <button type="button" data-filter="negative">Gram -</button>
+              <button type="button" data-filter="negative">Gram −</button>
               <button type="button" data-filter="anaerobe">Anaerobios</button>
               <button type="button" data-filter="atypical">Atípicos</button>
             </div>
@@ -82,7 +108,7 @@
             <div id="positive-lane" class="lane-items"></div>
           </div>
           <div class="morph-lane">
-            <h3>Gram - / no fermentadores</h3>
+            <h3>Gram − / no fermentadores</h3>
             <div id="negative-lane" class="lane-items"></div>
           </div>
         </div>
@@ -93,16 +119,16 @@
       <section id="antibiotics" class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Pokédex antibiótica</span>
-            <h2>Fichas por espectro, huecos y trampas</h2>
-            <p>Sin dosis. Cada tarjeta responde: qué cubre, qué no cubre y dónde te la puede liar.</p>
+            <span class="eyebrow">FICHERO ANTIBIÓTICO</span>
+            <h2>Espectro, huecos y trampas</h2>
+            <p>Sin dosis. Cada ficha responde qué cubre, qué deja fuera y dónde puede fallar la decisión.</p>
           </div>
         </div>
-        <div class="warning-stack">
-          <article class="warning-card"><span class="big-letter">C</span><strong>Ceftriaxona no es comodín</strong><p>No cubre Pseudomonas, Enterococcus, Listeria, SARM ni anaerobios.</p></article>
-          <article class="warning-card"><span class="big-letter">E</span><strong>Ertapenem tiene APE</strong><p>No Acinetobacter, no Pseudomonas, no Enterococcus.</p></article>
-          <article class="warning-card"><span class="big-letter">F</span><strong>Cefepime exige riñón</strong><p>Buena opción para AmpC/Pseudomonas si sensible, pero neurotoxicidad si no ajustas.</p></article>
-          <article class="warning-card"><span class="big-letter">M</span><strong>MBL no es KPC</strong><p>CAZ-AVI solo no basta; piensa en aztreonam o cefiderocol.</p></article>
+        <div class="warning-stack" aria-label="Alertas clave">
+          <article class="warning-card"><span class="big-letter">C</span><div><strong>Ceftriaxona no es comodín</strong><p>No cubre Pseudomonas, Enterococcus, Listeria, SARM ni anaerobios.</p></div></article>
+          <article class="warning-card"><span class="big-letter">E</span><div><strong>Ertapenem tiene APE</strong><p>No Acinetobacter, no Pseudomonas, no Enterococcus.</p></div></article>
+          <article class="warning-card"><span class="big-letter">F</span><div><strong>Cefepime exige riñón</strong><p>Buena opción para AmpC/Pseudomonas si sensible, pero neurotoxicidad si no ajustas.</p></div></article>
+          <article class="warning-card"><span class="big-letter">M</span><div><strong>MBL no es KPC</strong><p>CAZ-AVI solo no basta; piensa en aztreonam o cefiderocol.</p></div></article>
         </div>
         <div id="antibiotic-grid" class="grid antibiotic-grid"></div>
         <div id="antibiotic-empty" class="empty" hidden>No hay antibióticos que coincidan con la búsqueda.</div>
@@ -111,7 +137,7 @@
       <section id="mechanisms" class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">MDR/XDR</span>
+            <span class="eyebrow">MDR / XDR</span>
             <h2>Mecanismos que cambian el fármaco</h2>
             <p>KPC, OXA-48-like, MBL, DTR, CRAB y Steno no son variantes de “más amplio”: son mapas distintos.</p>
           </div>
@@ -123,45 +149,47 @@
       <section id="matrix" class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Heatmap</span>
-            <h2>Matriz visual de cobertura</h2>
-            <p>Orientativa: “±” no significa úsalo empíricamente. En MDR manda especie, mecanismo, foco, CMI y AST.</p>
+            <span class="eyebrow">MATRIZ COMPARATIVA</span>
+            <h2>Cobertura por familias</h2>
+            <p>“±” significa variable o no de elección, nunca una recomendación empírica. En MDR mandan especie, mecanismo, foco, CMI y AST.</p>
           </div>
         </div>
         <div class="legend">
           <span class="pill"><span class="cov yes">✓</span> cubre</span>
-          <span class="pill"><span class="cov maybe">±</span> variable / no de elección</span>
+          <span class="pill"><span class="cov maybe">±</span> variable</span>
           <span class="pill"><span class="cov no">✗</span> no cubre</span>
         </div>
-        <div class="matrix-wrap">
+        <div class="matrix-wrap" tabindex="0" aria-label="Matriz desplazable de cobertura antibiótica">
           <table class="coverage-matrix">
+            <caption class="visually-hidden">Cobertura orientativa de antibióticos frente a grupos microbiológicos</caption>
             <thead id="matrix-head"></thead>
             <tbody id="matrix-body"></tbody>
           </table>
         </div>
+        <p class="matrix-note"><strong>Lectura segura:</strong> las filas se mantienen separadas por fármaco; compartir familia no implica compartir espectro.</p>
       </section>
 
       <section id="wizard" class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Selector clínico auditable</span>
-            <h2>Foco + germen + gravedad</h2>
-            <p>No pretende prescribir por ti. La salida indica si existe una regla específica o si solo ofrece orientación general por germen.</p>
+            <span class="eyebrow">RUTAS CLÍNICAS AUDITADAS</span>
+            <h2>Solo combinaciones con regla explícita</h2>
+            <p>Las opciones se reducen dinámicamente para impedir que una orientación general se muestre como recomendación específica.</p>
           </div>
         </div>
         <div class="wizard">
-          <section class="wizard-panel">
-            <div class="field"><label for="focus-select">Foco</label><select id="focus-select"></select></div>
-            <div class="field"><label for="germ-select">Germen o mecanismo</label><select id="germ-select"></select></div>
-            <div class="field"><label for="severity-select">Gravedad</label><select id="severity-select"></select></div>
-            <div class="side-card">
-              <strong>Cómo leer la salida</strong>
-              <p>“Regla específica” significa que foco o gravedad cambian la rama. “Orientación por germen” hace visible que esa combinación aún no está modelada de forma específica.</p>
+          <section class="wizard-panel" aria-label="Parámetros clínicos">
+            <div class="field"><label for="germ-select"><span>01</span> Germen o mecanismo</label><select id="germ-select"></select></div>
+            <div class="field"><label for="focus-select"><span>02</span> Foco</label><select id="focus-select"></select></div>
+            <div class="field"><label for="severity-select"><span>03</span> Gravedad</label><select id="severity-select"></select></div>
+            <div class="route-proof">
+              <span class="status-dot" aria-hidden="true"></span>
+              <div><strong>Ruta verificable</strong><p id="route-summary">La combinación seleccionada tiene una regla específica.</p></div>
             </div>
           </section>
           <section class="result-panel" aria-live="polite">
             <div class="result-title">
-              <div><span class="eyebrow">Salida razonada</span><h3 id="scenario-headline"></h3></div>
+              <div><span class="eyebrow">SALIDA RAZONADA</span><h3 id="scenario-headline"></h3></div>
               <div class="result-meta"><span id="severity-pill" class="pill"></span><span id="scenario-scope" class="pill scenario-scope"></span></div>
             </div>
             <div id="scenario-alert" class="case-result"></div>
@@ -178,14 +206,14 @@
 
       <section id="cases" class="section">
         <div class="section-head">
-          <div><span class="eyebrow">Guardia</span><h2>Trampas visuales</h2><p>Mini casos para fijar huecos clásicos. Son deliberadamente cortos.</p></div>
+          <div><span class="eyebrow">GUARDIA</span><h2>Trampas visuales</h2><p>Mini casos deliberadamente cortos para fijar huecos clásicos.</p></div>
         </div>
         <div id="case-grid" class="case-grid"></div>
       </section>
 
       <section id="deep" class="section">
         <div class="section-head">
-          <div><span class="eyebrow">Texto escondido</span><h2>Explicación completa, plegada</h2><p>Mantengo la sustancia en desplegables para no romper la lectura visual. No incluye dosis.</p></div>
+          <div><span class="eyebrow">CAPA DE CONSULTA</span><h2>Explicación completa, plegada</h2><p>La sustancia se mantiene en desplegables para no romper la lectura operativa. No incluye dosis.</p></div>
         </div>
         <div id="deep-sections"></div>
         <details class="source-details"><summary>Listado compacto de huecos que obligan a combinar</summary><ul id="combination-gaps"></ul></details>
@@ -197,10 +225,10 @@
   </div>
 
   <dialog id="detail-dialog" class="detail-drawer" aria-labelledby="detail-title">
-    <button id="detail-close" class="drawer-close" type="button" aria-label="Cerrar">×</button>
+    <button id="detail-close" class="drawer-close" type="button" aria-label="Cerrar detalle">×</button>
     <div id="detail-content"></div>
   </dialog>
 
-  <script type="module" src="src/app.js"></script>
+  <script src="app.bundle.js"></script>
 </body>
 </html>

@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build-bundle.js",
+    "bundle:check": "node scripts/build-bundle.js --check",
     "test": "node --test",
-    "check": "node --test tests/validation.test.js"
+    "syntax": "node --check scripts/build-bundle.js && node --check app.bundle.js && node --check src/app.js && node --check src/catalog.js && node --check src/coverage.js && node --check src/rules.js && node --check src/selectors.js && node --check src/sources.js && node --check src/validate.js",
+    "check": "node --test tests/validation.test.js",
+    "verify": "npm run syntax && npm test && npm run bundle:check"
   }
 }
