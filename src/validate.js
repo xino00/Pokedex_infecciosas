@@ -73,6 +73,8 @@ export function validateData() {
         errors.push(`Cobertura ${row.id}: falta la columna ${targetId}.`);
       } else if (!validLevels.has(row.values[targetId])) {
         errors.push(`Cobertura ${row.id}/${targetId}: nivel inválido (${row.values[targetId]}).`);
+      } else if (row.values[targetId] === "unknown" && !row.notes[targetId]?.trim()) {
+        errors.push(`Cobertura ${row.id}/${targetId}: la incertidumbre requiere una nota explicativa.`);
       }
     }
     for (const targetId of rowTargets) {
@@ -100,6 +102,9 @@ export function validateData() {
   for (const rule of SCENARIO_RULES) {
     if (!Number.isInteger(rule.priority)) {
       errors.push(`Regla ${rule.id}: prioridad no entera.`);
+    }
+    if (!rule.when.focus) {
+      errors.push(`Regla ${rule.id}: debe declarar los focos a los que se aplica.`);
     }
   }
 
@@ -129,6 +134,12 @@ export function validateData() {
   for (const input of AUDITED_SCENARIOS) {
     if (!isAuditedScenario(input) || !resolveScenario(input)?.ruleId) {
       errors.push(`Ruta auditada inválida: ${input.germ}/${input.focus}/${input.severity}.`);
+    }
+    if (!resolveScenario(input)?.followUpItems.length) {
+      errors.push(`Ruta sin seguimiento: ${input.germ}/${input.focus}/${input.severity}.`);
+    }
+    if (input.focus === "cistitis" && input.severity !== "estable") {
+      errors.push(`La cistitis baja no debe ofrecerse como infección invasiva o crítica: ${input.germ}.`);
     }
   }
 

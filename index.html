@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#132238" />
+  <meta name="theme-color" content="#ffffff" />
   <title>PROADEX · Atlas visual de antimicrobianos</title>
   <meta name="description" content="Atlas visual de espectro antimicrobiano, gramnegativos resistentes y trampas PROA para guardia y estudio." />
   <link rel="icon" href="data:," />
@@ -17,60 +17,80 @@
   </noscript>
 
   <div id="app" class="app-shell">
-    <aside class="sidebar">
-      <div class="brand-row">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true"><span>PX</span></div>
-          <div>
-            <strong>PROADEX</strong>
-            <span>Antibiograma de bolsillo</span>
+    <header class="site-header">
+      <div class="masthead">
+        <a class="brand" href="#" aria-label="PROADEX, inicio">
+          <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 1v30M1 16h30" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg>
+          <strong>PROADEX<span class="brand-period">.</span></strong>
+        </a>
+        <p class="brand-description">Atlas de antimicrobianos<br><span>Espectro · Resistencias · PROA</span></p>
+        <div class="header-tools">
+          <div class="search-panel">
+            <label class="search-box" for="global-search">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+              <span class="visually-hidden">Buscar en patógenos, fármacos y mecanismos</span>
+              <input id="global-search" type="search" placeholder="Ceftriaxona, AmpC, Listeria…" autocomplete="off" aria-keyshortcuts="/" aria-describedby="search-status" />
+              <kbd aria-hidden="true">/</kbd>
+            </label>
+            <p id="search-status" class="search-status" role="status" aria-live="polite"></p>
           </div>
+          <button id="theme-button" class="theme-btn" type="button" aria-label="Cambiar tema de color">
+            <svg id="theme-symbol" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/></svg>
+            <span id="theme-label">Oscuro</span>
+          </button>
         </div>
-        <button id="theme-button" class="theme-btn" type="button" aria-label="Cambiar tema de color">
-          <span id="theme-symbol" aria-hidden="true">◐</span>
-          <span id="theme-label">Oscuro</span>
-        </button>
       </div>
-
-      <div class="search-panel">
-        <label class="search-box" for="global-search">
-          <span aria-hidden="true">⌕</span>
-          <input id="global-search" type="search" placeholder="Ceftriaxona, AmpC, Listeria…" autocomplete="off" />
-        </label>
-        <p id="search-status" class="search-status" aria-live="polite"></p>
-      </div>
-
       <nav id="section-navigation" class="nav-list" aria-label="Secciones"></nav>
+    </header>
 
-      <div class="side-card">
-        <span class="utility-label">Límite clínico</span>
-        <strong>Mapa de espectro, no pauta.</strong>
-        <p>Sin dosis. Confirmar protocolo local, AST, foco, alergias y función renal.</p>
-      </div>
-    </aside>
-
-    <main id="main-content" class="main">
+    <main id="main-content" class="main" tabindex="-1">
       <header class="instrument-header">
         <div class="instrument-copy">
-          <span class="eyebrow">PROA · ATLAS OPERATIVO</span>
-          <h1>Encuentra el hueco antes de prescribir.</h1>
-          <p class="lead">Compara espectro, abre la ficha y fuerza la pregunta incómoda: ¿qué patógeno importante se queda fuera?</p>
+          <span class="eyebrow">Atlas visual de antimicrobianos</span>
+          <h1>Encuentra<br>el <span>hueco.</span></h1>
+          <p class="lead"><strong>Antes de prescribir.</strong> Compara espectro, abre la ficha y fuerza la pregunta incómoda: ¿qué patógeno importante se queda fuera?</p>
           <div class="header-actions">
-            <button class="text-action" type="button" data-go-section="matrix">Abrir matriz <span aria-hidden="true">→</span></button>
-            <button class="text-action" type="button" data-go-section="wizard">Ir a rutas auditadas <span aria-hidden="true">→</span></button>
+            <button class="primary-action" type="button" data-go-section="matrix">Explorar la matriz <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
+            <button class="text-action" type="button" data-go-section="wizard">Rutas clínicas <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></button>
           </div>
         </div>
+        <div class="hero-art" aria-hidden="true">
+          <svg class="coverage-art" viewBox="0 0 480 420" fill="none">
+            <defs>
+              <pattern id="specimen-grid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0v60" stroke="currentColor" stroke-opacity=".17"/></pattern>
+              <mask id="specimen-gap"><rect width="480" height="420" fill="white"/><rect x="242" y="210" width="67" height="67" fill="black"/></mask>
+            </defs>
+            <rect width="480" height="420" fill="url(#specimen-grid)"/>
+            <g class="specimen-field" mask="url(#specimen-gap)">
+              <circle cx="240" cy="210" r="158" stroke="currentColor" stroke-opacity=".45"/>
+              <circle cx="240" cy="210" r="126" stroke="currentColor" stroke-opacity=".45"/>
+              <g fill="currentColor">
+                <circle cx="171" cy="112" r="23"/><circle cx="240" cy="106" r="23"/><circle cx="309" cy="112" r="23"/>
+                <circle cx="137" cy="178" r="23"/><circle cx="206" cy="174" r="23"/><circle cx="275" cy="174" r="23"/><circle cx="344" cy="178" r="23"/>
+                <circle cx="137" cy="247" r="23"/><circle cx="206" cy="243" r="23"/><circle cx="275" cy="243" r="23"/><circle cx="344" cy="247" r="23"/>
+                <circle cx="171" cy="309" r="23"/><circle cx="240" cy="313" r="23"/><circle cx="309" cy="309" r="23"/>
+              </g>
+            </g>
+            <g class="specimen-focus" stroke="currentColor" stroke-width="1.5"><path d="M241 224v-16h16m38 0h16v16m0 38v16h-16m-38 0h-16v-16"/><path d="M276 233v20m-10-10h20" stroke-opacity=".65"/></g>
+            <path d="M20 20h20m-10-10v20m410 370h20m-10-10v20" stroke="currentColor" stroke-opacity=".6"/>
+          </svg>
+          <div class="art-caption"><span>Espectro</span><span>Huecos de cobertura</span></div>
+        </div>
+      </header>
+
+      <div class="atlas-overview">
         <dl class="atlas-index" aria-label="Contenido del atlas">
           <div><dt id="organism-count">0</dt><dd>patógenos</dd></div>
           <div><dt id="antibiotic-count">0</dt><dd>fármacos</dd></div>
           <div><dt id="mechanism-count">0</dt><dd>mecanismos</dd></div>
         </dl>
-      </header>
+        <div class="clinical-boundary"><strong>Mapa de espectro, no pauta.</strong><p>Sin dosis. Confirmar protocolo local, AST, foco, alergias y función renal.</p></div>
+      </div>
 
       <section class="spectrum-scanner" aria-labelledby="scanner-title">
         <div class="scanner-head">
           <div>
-            <span class="eyebrow">ESCÁNER DE ESPECTRO</span>
+            <span class="eyebrow">Escáner de espectro</span>
             <h2 id="scanner-title">Una fila, todos sus huecos.</h2>
           </div>
           <label class="scanner-picker" for="scanner-drug">
@@ -78,10 +98,12 @@
             <select id="scanner-drug"></select>
           </label>
         </div>
-        <div id="scanner-strip" class="scanner-strip" role="list" aria-label="Cobertura del antibiótico seleccionado"></div>
-        <div class="scanner-foot">
-          <p id="scanner-summary"></p>
-          <button id="scanner-open" class="quiet-action" type="button">Abrir ficha completa</button>
+        <div class="scanner-workspace">
+          <div id="scanner-strip" class="scanner-strip" role="list" aria-label="Cobertura del antibiótico seleccionado"></div>
+          <div class="scanner-foot">
+            <p id="scanner-summary"></p>
+            <button id="scanner-open" class="quiet-action" type="button">Abrir ficha completa <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></button>
+          </div>
         </div>
       </section>
 
@@ -94,11 +116,11 @@
           </div>
           <div class="toolbar">
             <div id="organism-filters" class="segmented" aria-label="Filtrar atlas">
-              <button type="button" class="active" data-filter="all">Todo</button>
-              <button type="button" data-filter="positive">Gram +</button>
-              <button type="button" data-filter="negative">Gram −</button>
-              <button type="button" data-filter="anaerobe">Anaerobios</button>
-              <button type="button" data-filter="atypical">Atípicos</button>
+              <button type="button" class="active" data-filter="all" aria-pressed="true">Todo</button>
+              <button type="button" data-filter="positive" aria-pressed="false">Gram +</button>
+              <button type="button" data-filter="negative" aria-pressed="false">Gram −</button>
+              <button type="button" data-filter="anaerobe" aria-pressed="false">Anaerobios</button>
+              <button type="button" data-filter="atypical" aria-pressed="false">Atípicos</button>
             </div>
           </div>
         </div>
@@ -151,13 +173,14 @@
           <div>
             <span class="eyebrow">MATRIZ COMPARATIVA</span>
             <h2>Cobertura por familias</h2>
-            <p>“±” significa variable o no de elección, nunca una recomendación empírica. En MDR mandan especie, mecanismo, foco, CMI y AST.</p>
+            <p>“±” significa variable o no de elección; “?” indica cobertura clínica no establecida. Estos símbolos no equivalen a S/I/R del antibiograma ni a una recomendación empírica. Revisar foco, CMI, AST y notas de cada fila.</p>
           </div>
         </div>
         <div class="legend">
           <span class="pill"><span class="cov yes">✓</span> cubre</span>
           <span class="pill"><span class="cov maybe">±</span> variable</span>
           <span class="pill"><span class="cov no">✗</span> no cubre</span>
+          <span class="pill"><span class="cov unknown">?</span> no establecido</span>
         </div>
         <div class="matrix-wrap" tabindex="0" aria-label="Matriz desplazable de cobertura antibiótica">
           <table class="coverage-matrix">
@@ -167,14 +190,15 @@
           </table>
         </div>
         <p class="matrix-note"><strong>Lectura segura:</strong> las filas se mantienen separadas por fármaco; compartir familia no implica compartir espectro.</p>
+        <div id="matrix-caveats" class="matrix-note"></div>
       </section>
 
       <section id="wizard" class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">RUTAS CLÍNICAS AUDITADAS</span>
-            <h2>Solo combinaciones con regla explícita</h2>
-            <p>Las opciones se reducen dinámicamente para impedir que una orientación general se muestre como recomendación específica.</p>
+            <span class="eyebrow">RUTAS CLÍNICAS</span>
+            <h2>Decisiones por germen, foco y gravedad</h2>
+            <p>Orientación para adultos: revisa las opciones de tratamiento, el control del foco y el seguimiento. Confirma sensibilidad y protocolo local antes de aplicar una pauta.</p>
           </div>
         </div>
         <div class="wizard">
@@ -184,7 +208,7 @@
             <div class="field"><label for="severity-select"><span>03</span> Gravedad</label><select id="severity-select"></select></div>
             <div class="route-proof">
               <span class="status-dot" aria-hidden="true"></span>
-              <div><strong>Ruta verificable</strong><p id="route-summary">La combinación seleccionada tiene una regla específica.</p></div>
+              <div><strong id="route-status-title">Escenario seleccionado</strong><p id="route-summary">Elige un germen, el foco y la gravedad.</p></div>
             </div>
           </section>
           <section class="result-panel" aria-live="polite">
@@ -193,13 +217,16 @@
               <div class="result-meta"><span id="severity-pill" class="pill"></span><span id="scenario-scope" class="pill scenario-scope"></span></div>
             </div>
             <div id="scenario-alert" class="case-result"></div>
+            <button id="scenario-reset" class="quiet-action" type="button" hidden>Elegir otra ruta</button>
+            <div id="scenario-guidance">
             <div class="answer-grid">
-              <div class="answer-box"><h4>Hacer / pensar</h4><ul id="scenario-do"></ul></div>
+              <div class="answer-box"><h4>Tratamiento y control del foco</h4><ul id="scenario-do"></ul></div>
               <div class="answer-box"><h4>Evitar</h4><ul id="scenario-avoid"></ul></div>
-              <div class="answer-box"><h4>Micro / PROA</h4><ul id="scenario-micro"></ul></div>
-              <div class="answer-box"><h4>Salida</h4><ul><li>Reevaluar a 48-72 h con cultivos, evolución y control de foco.</li><li>Desescalar o pasar a oral activa si estabilidad, sensibilidad y absorción lo permiten.</li><li>Suspender si era colonización o no hay síndrome infeccioso.</li></ul></div>
+              <div class="answer-box"><h4>Pruebas y valoración especializada</h4><ul id="scenario-micro"></ul></div>
+              <div class="answer-box"><h4>Seguimiento</h4><ul id="scenario-follow-up"></ul></div>
             </div>
             <details class="source-details"><summary>Fuentes de esta salida</summary><ul id="scenario-sources" class="source-list"></ul></details>
+            </div>
           </section>
         </div>
       </section>
@@ -220,12 +247,13 @@
         <details class="source-details"><summary>Fuentes y alcance</summary><ul id="source-list" class="source-list"></ul></details>
       </section>
 
+      <footer class="site-footer"><span class="footer-brand">PROADEX.</span><p>Atlas visual de antimicrobianos.<br>Espectro, huecos y trampas de guardia.</p><button class="text-action" type="button" data-go-section="deep">Fuentes y alcance <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></button></footer>
       <p class="print-note">Versión imprimible generada desde PROADEX. No incluye dosis.</p>
     </main>
   </div>
 
   <dialog id="detail-dialog" class="detail-drawer" aria-labelledby="detail-title">
-    <button id="detail-close" class="drawer-close" type="button" aria-label="Cerrar detalle">×</button>
+    <button id="detail-close" class="drawer-close" type="button" aria-label="Cerrar detalle"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
     <div id="detail-content"></div>
   </dialog>
 

@@ -22,3 +22,16 @@ test("cada fila nombra explícitamente todos los objetivos de cobertura", () => 
   }
   assert.ok(COVERAGE_TARGETS.every(({ label, shortLabel }) => label && shortLabel));
 });
+
+test("los carbapenémicos conservan sus diferencias documentadas por CIMA y DailyMed", () => {
+  const matrix = buildMatrix();
+  const cell = (drug, target) => matrix.rows.find(({ id }) => id === drug).cells.find(({ targetId }) => targetId === target);
+  // Valores contrastados con CIMA 60640/71285 y DailyMed PRIMAXIN, no equivalencia de pautas.
+  assert.equal(cell("meropenem", "efaecalis").level, "maybe");
+  assert.equal(cell("meropenem", "listeria").level, "yes");
+  assert.equal(cell("imipenem", "efaecalis").level, "yes");
+  assert.equal(cell("imipenem", "listeria").level, "maybe");
+  assert.match(cell("meropenem", "efaecalis").note, /intermedia/);
+  assert.match(cell("imipenem", "listeria").note, /no se recomienda para meningitis/);
+  assert.equal(cell("ertapenem", "efaecalis").level, "no");
+});

@@ -2,6 +2,7 @@ import { COVERAGE, COVERAGE_TARGETS, coverageSymbol } from "./coverage.js";
 
 export function normalize(text) {
   return String(text ?? "")
+    .trim()
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
@@ -37,6 +38,7 @@ export function filterAntibiotics(antibiotics, query) {
         antibiotic.covers.join(" "),
         antibiotic.misses.join(" "),
         antibiotic.trap,
+        ...(antibiotic.precautions ?? []),
         antibiotic.search,
       ].join(" "),
     ).includes(needle),
@@ -72,7 +74,7 @@ export function buildMatrix() {
           cells: Object.freeze(
             COVERAGE_TARGETS.map((target) => {
               const level = entry.values[target.id];
-              return Object.freeze({ targetId: target.id, level, symbol: coverageSymbol(level) });
+              return Object.freeze({ targetId: target.id, level, symbol: coverageSymbol(level), note: entry.notes[target.id] ?? "" });
             }),
           ),
         }),

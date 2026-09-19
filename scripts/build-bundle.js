@@ -5,12 +5,14 @@ import { fileURLToPath } from "node:url";
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outputPath = path.join(projectRoot, "app.bundle.js");
 const moduleFiles = Object.freeze([
+  "src/clinical-guidance.js",
   "src/catalog.js",
   "src/coverage.js",
   "src/rules.js",
   "src/selectors.js",
   "src/sources.js",
   "src/validate.js",
+  "src/navigation.js",
   "src/app.js",
 ]);
 

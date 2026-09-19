@@ -3,10 +3,50 @@
   "use strict";
   const __modules = Object.create(null);
 
+  // src/clinical-guidance.js
+  __modules["clinical-guidance"] = (() => {
+    // Texto compartido para que ficha, mecanismo y motor mantengan la misma revisión.
+    const QUINOLONE_PRECAUTIONS = Object.freeze([
+      "Utilizar únicamente para indicaciones autorizadas y tras valorar beneficio-riesgo. En infecciones leves/moderadas, reservar si no pueden usarse las alternativas habituales. No usar en infecciones autolimitadas o no bacterianas.",
+      "Evitar si hubo una reacción grave previa a quinolonas. Ante síntomas tendinosos o neurológicos, suspender y reevaluar: algunos daños pueden ser prolongados o irreversibles.",
+      "Valorar el riesgo de tendinitis y rotura de tendones, especialmente con corticoides, edad avanzada, insuficiencia renal o trasplante. Comprobar QT, interacciones y separación de antiácidos/hierro/zinc según ficha.",
+    ]);
+
+    const STENO_GUIDANCE = Object.freeze({
+      headline: "Stenotrophomonas: infección invasiva o colonización",
+      doItems: Object.freeze([
+        "Confirmar infección real, AST y protocolo local con PROA/Infecciosas.",
+        "IDSA 2026: cefiderocol en monoterapia es la opción preferida para infección invasiva.",
+        "Alternativa: aztreonam-avibactam, preferiblemente combinado con otro agente; si no está disponible, CAZ-AVI + aztreonam.",
+        "Levofloxacino, minociclina o TMP-SMX son alternativas como parte de una combinación.",
+      ]),
+      avoidItems: Object.freeze(["Carbapenémicos.", "Ceftazidima como tratamiento.", "Tratar colonización respiratoria aislada."]),
+      microItems: Object.freeze([
+        "Solicitar AST. La preferencia por cefiderocol se apoya principalmente en modelos animales, con evidencia clínica limitada; adaptar a disponibilidad y protocolo local.",
+      ]),
+      sourceIds: Object.freeze(["idsa-amr-2026"]),
+    });
+
+    const MBL_GUIDANCE = Object.freeze({
+      headline: "Enterobacterales MBL: mecanismo y AST antes de elegir",
+      doItems: Object.freeze([
+        "NDM: IDSA 2026 prefiere aztreonam-avibactam o cefiderocol; si el primero no está disponible, CAZ-AVI + aztreonam.",
+        "Otras MBL (VIM/IMP): CAZ-AVI + aztreonam o cefiderocol según AST, foco y PROA (IDSA 2024).",
+      ]),
+      avoidItems: Object.freeze(["CAZ-AVI en monoterapia.", "Vaborbactam/relebactam como si inhibieran MBL."]),
+      microItems: Object.freeze(["Confirmar mecanismo, sensibilidad y disponibilidad; pedir estudio de CAZ-AVI + aztreonam si se plantea la combinación."]),
+      sourceIds: Object.freeze(["idsa-amr-2024", "idsa-amr-2026"]),
+    });
+
+    return Object.freeze({ QUINOLONE_PRECAUTIONS, STENO_GUIDANCE, MBL_GUIDANCE });
+  })();
+
   // src/catalog.js
   __modules["catalog"] = (() => {
+    const { MBL_GUIDANCE, QUINOLONE_PRECAUTIONS, STENO_GUIDANCE } = __modules["clinical-guidance"];
     const LOCAL_SOURCE = ["local-proa-fjd"];
     const AMR_SOURCES = ["local-proa-fjd", "idsa-amr-2024"];
+    const QUINOLONE_SOURCES = ["aemps-fluoroquinolonas", "eucast-2026-quinolones"];
 
     const SECTIONS = Object.freeze([
       { id: "atlas", label: "Atlas bacteriano", icon: "🧫" },
@@ -224,12 +264,11 @@
         tags: ["Colonización", "L1/L2"],
         syndromes:
           "Colonización respiratoria frecuente; infección real en críticos, inmunodeprimidos, catéter o neumonía compatible.",
-        cover:
-          "Solo si infección real + AST + PROA. Si moderada-grave: dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam.",
+        cover: STENO_GUIDANCE.doItems.join(" "),
         gap: "Carbapenémicos inútiles por L1; muchas cefalosporinas fallan por L2.",
-        trap: "Primero distinguir infección de colonización. No usar ceftazidima como tratamiento.",
+        trap: STENO_GUIDANCE.microItems.join(" "),
         search: "stenotrophomonas maltophilia infeccion real ast proa tmp smx minociclina levofloxacino cefiderocol ceftazidima",
-        sourceIds: AMR_SOURCES,
+        sourceIds: STENO_GUIDANCE.sourceIds,
       },
       {
         id: "bacteroides",
@@ -279,17 +318,47 @@
       { id: "cefepime", dex: "C005", group: "amber", name: "Cefepime", family: "Cefalosporina 4ª", icon: "💊", type: "AmpC/Pseudomonas", covers: ["AmpC si CMI favorable", "Pseudomonas si sensible", "Enterobacterales no BLEE"], misses: ["BLEE dirigida", "Anaerobios", "Enterococcus", "Listeria", "SARM"], trap: "Ajuste renal obligatorio: neurotoxicidad si se olvida.", search: "cefepime ampc pseudomonas blee neurotoxicidad" },
       { id: "piptazo", dex: "P001", group: "green", name: "Piperacilina-tazobactam", family: "Penicilina antipseudomónica + inhibidor", icon: "💊", type: "Amplio con anaerobios", covers: ["Pseudomonas si sensible", "Anaerobios", "Enterobacterales no BLEE", "SASM", "E. faecalis sensible"], misses: ["SARM", "E. faecium resistente", "Carbapenemasas", "BLEE grave fiable"], trap: "En BLEE extraurinaria grave, no usar como dirigida aunque parezca sensible.", search: "piperacilina tazobactam pip tazo pseudomonas anaerobios blee" },
       { id: "ertapenem", dex: "K001", group: "blue", name: "Ertapenem", family: "Carbapenémico grupo 1", icon: "💊", type: "BLEE estable", covers: ["Enterobacterales BLEE", "Anaerobios", "muchos Gram+ comunitarios"], misses: ["Acinetobacter", "Pseudomonas", "Enterococcus"], trap: "APE: Acinetobacter, Pseudomonas, Enterococcus quedan fuera.", search: "ertapenem blee ape acinetobacter pseudomonas enterococcus" },
-      { id: "mero-imi", dex: "K002", group: "red", name: "Meropenem / imipenem", family: "Carbapenémico antipseudomónico", icon: "💊", type: "UCI/MDR", covers: ["BLEE", "AmpC", "Anaerobios", "Pseudomonas si sensible"], misses: ["SARM", "Stenotrophomonas", "Atípicos", "Enterococcus resistente"], trap: "No gastar carbapenémico si el problema es colonización o cistitis baja con opción oral activa.", search: "meropenem imipenem carbapenemico blee ampc pseudomonas anaerobios" },
+      { id: "mero-imi", dex: "K002", group: "red", name: "Meropenem / imipenem: diferencias", family: "Carbapenémicos antipseudomónicos", icon: "💊", type: "Espectro y foco", covers: ["BLEE y AmpC según AST", "Anaerobios", "Pseudomonas si sensible", "Meropenem: actividad frente a Listeria; E. faecalis con sensibilidad natural intermedia", "Imipenem: E. faecalis sensible; actividad in vitro frente a Listeria sin eficacia clínica establecida"], misses: ["SARM", "E. faecium resistente", "Stenotrophomonas", "Atípicos"], trap: "Imipenem/cilastatina no se recomienda para meningitis. La actividad microbiológica no convierte un fármaco en pauta de elección; revisar foco, AST y protocolo.", search: "meropenem imipenem carbapenemico blee ampc listeria enterococcus faecalis meningitis", sourceIds: ["local-proa-fjd", "aemps-meropenem", "aemps-imipenem", "dailymed-imipenem"] },
       { id: "aztreonam", dex: "M001", group: "amber", name: "Aztreonam", family: "Monobactámico", icon: "💊", type: "Solo GN aerobios", covers: ["Enterobacterales si sensible", "Pseudomonas si sensible"], misses: ["Gram positivos", "Anaerobios"], trap: "Comparte cadena lateral con ceftazidima: cuidado si alergia confirmada a ceftazidima.", search: "aztreonam monobactam alergia ceftazidima pseudomonas anaerobios" },
       { id: "anti-mrsa-ceph", dex: "C006", group: "blue", name: "Ceftarolina (ceftobiprol no intercambiable)", family: "Cefalosporina anti-SARM", icon: "💊", type: "Anti-SARM beta-lactámico", covers: ["SARM", "SASM", "Streptococcus", "neumococo resistente"], misses: ["Pseudomonas en ceftarolina", "BLEE/CRE/AmpC", "Enterococcus fiable"], trap: "Anti-SARM dirigido, no comodín MDR. No extrapolar ceftarolina y ceftobiprol como equivalentes.", search: "ceftarolina ceftobiprol no intercambiable sarm mrsa neumococo blee cre ampc" },
       { id: "caz-avi", dex: "N001", group: "red", name: "Ceftazidima-avibactam", family: "Nuevo BL/BLI", icon: "🧬", type: "KPC/OXA-48-like", covers: ["KPC", "OXA-48-like", "algunas Pseudomonas DTR si sensible"], misses: ["MBL en monoterapia", "Gram+ y anaerobios relevantes"], trap: "MBL: combinar con aztreonam o elegir otra estrategia según disponibilidad/AST.", search: "ceftazidima avibactam caz avi kpc oxa48 mbl aztreonam", sourceIds: AMR_SOURCES },
       { id: "ceftolo-tazo", dex: "N002", group: "green", name: "Ceftolozano-tazobactam", family: "Nuevo BL/BLI", icon: "🧬", type: "Pseudomonas DTR", covers: ["Pseudomonas MDR/DTR si sensible", "algunas BLEE pero no como referencia"], misses: ["KPC", "OXA-48", "MBL", "Anaerobios sin metronidazol"], trap: "Especialista en Pseudomonas; no lo uses como carbapenemasa-killer.", search: "ceftolozano tazobactam pseudomonas dtr blee kpc", sourceIds: AMR_SOURCES },
       { id: "mvb-imi-rel", dex: "N003", group: "red", name: "Meropenem-vaborbactam / imipenem-relebactam", family: "Nuevo BL/BLI", icon: "🧬", type: "KPC", covers: ["KPC", "algunas Pseudomonas DTR si sensible en IMI-REL"], misses: ["MBL", "OXA-48-like en MVB/IMI-REL"], trap: "Si es OXA-48 o MBL, cambiar de mapa.", search: "meropenem vaborbactam imipenem relebactam kpc oxa48 mbl", sourceIds: AMR_SOURCES },
-      { id: "cefiderocol", dex: "N004", group: "red", name: "Cefiderocol", family: "Cefalosporina sideróforo", icon: "🧬", type: "MDR/XDR", covers: ["MBL como opción", "algunos no fermentadores MDR", "CRE según AST"], misses: ["Gram+", "Anaerobios"], trap: "Último recurso: siempre con AST, foco claro y PROA/Infecciosas.", search: "cefiderocol sideroforo mbl crab pseudomonas dtr", sourceIds: AMR_SOURCES },
+      { id: "cefiderocol", dex: "N004", group: "red", name: "Cefiderocol", family: "Cefalosporina sideróforo", icon: "🧬", type: "MDR/XDR", covers: ["MBL como opción", "algunos no fermentadores MDR", "CRE según AST", "Stenotrophomonas invasiva: preferido por IDSA 2026"], misses: ["Gram+", "Anaerobios"], trap: "Su papel depende del patógeno. En Stenotrophomonas invasiva, la preferencia IDSA 2026 tiene evidencia clínica limitada; confirmar AST, foco y PROA.", search: "cefiderocol sideroforo mbl crab pseudomonas dtr", sourceIds: [...AMR_SOURCES, "idsa-amr-2026"] },
       { id: "vanco", dex: "O001", group: "amber", name: "Vancomicina", family: "Glucopéptido", icon: "🛡️", type: "Gram+ resistentes", covers: ["SARM", "E. faecium sensible", "Gram+ resistentes"], misses: ["Gram negativos", "CDI luminal por vía IV"], trap: "IV no trata luz colónica; para CDI, vía oral/fidaxomicina según caso.", search: "vancomicina sarm c difficile oral iv niveles" },
       { id: "dapto", dex: "O002", group: "blue", name: "Daptomicina", family: "Lipopeptido", icon: "🛡️", type: "SARM/ERV no pulmonar", covers: ["Bacteriemia por Gram+", "endocarditis derecha", "osteoarticular", "IPPB"], misses: ["Neumonía"], trap: "Surfactante pulmonar la inactiva. CK y estatinas.", search: "daptomicina neumonia surfactante ck sarm erv" },
       { id: "tmp-smx", dex: "O003", group: "amber", name: "Cotrimoxazol", family: "TMP-SMX", icon: "🧪", type: "Oral útil / Steno", covers: ["Stenotrophomonas si sensible", "algunas ITU", "Pneumocystis"], misses: ["Pseudomonas", "anaerobios"], trap: "Vigilar potasio, función renal y hemograma.", search: "cotrimoxazol tmp smx stenotrophomonas potasio hemograma" },
       { id: "metro", dex: "O004", group: "blue", name: "Metronidazol", family: "Nitroimidazol", icon: "🧪", type: "Anaerobios", covers: ["Anaerobios", "protozoos seleccionados"], misses: ["Aerobios", "Gram+ y GN no anaerobios"], trap: "Ceftriaxona + metronidazol es una lógica; metronidazol solo rara vez lo es en foco polimicrobiano.", search: "metronidazol anaerobios abdomen ceftriaxona" },
+      {
+        id: "ciprofloxacin", dex: "Q001", group: "green", name: "Ciprofloxacino",
+        family: "Fluoroquinolona", icon: "💊", type: "Gram negativos / AST",
+        covers: ["Pseudomonas si AST activo y exposición adecuada", "Enterobacterales si sensibles", "Legionella"],
+        misses: ["Neumococo: eficacia insuficiente", "SARM: cobertura no fiable", "Anaerobios relevantes", "Listeria"],
+        trap: "No es una quinolona respiratoria para neumococo. En ITU, confirmar AST y foco; ajustar a función renal. Contraindicado con tizanidina.",
+        precautions: QUINOLONE_PRECAUTIONS,
+        search: "ciprofloxacino cipro ciprofloxacin quinolona quinolonas fluoroquinolonas pseudomonas itu prostatitis blee tizanidina",
+        sourceIds: ["aemps-ciprofloxacin", "idsa-amr-2026", ...QUINOLONE_SOURCES],
+      },
+      {
+        id: "levofloxacin", dex: "Q002", group: "amber", name: "Levofloxacino",
+        family: "Fluoroquinolona respiratoria", icon: "💊", type: "Respiratorio / urinario",
+        covers: ["Neumococo", "Atípicos respiratorios", "Enterobacterales si sensibles", "Pseudomonas solo con AST activo y exposición adecuada"],
+        misses: ["SARM: cobertura no fiable", "Anaerobios fiables", "Listeria: cobertura clínica no establecida"],
+        trap: "La etiqueta respiratoria no garantiza actividad frente a Pseudomonas. En NAC, reservar si las alternativas habituales no son apropiadas. Ajustar a función renal.",
+        precautions: QUINOLONE_PRECAUTIONS,
+        search: "levofloxacino levo levofloxacin quinolona quinolonas fluoroquinolonas neumococo atipicos legionella itu prostatitis blee",
+        sourceIds: ["aemps-levofloxacin", "idsa-amr-2026", ...QUINOLONE_SOURCES],
+      },
+      {
+        id: "moxifloxacin", dex: "Q003", group: "amber", name: "Moxifloxacino",
+        family: "Fluoroquinolona respiratoria", icon: "💊", type: "Respiratorio / sin Pseudomonas",
+        covers: ["Neumococo", "Atípicos respiratorios", "Algunos anaerobios; B. fragilis variable"],
+        misses: ["Pseudomonas", "ITU: no es una opción indicada", "SARM: cobertura no fiable", "Listeria: evidencia clínica insuficiente"],
+        trap: "En NAC, reservar si las alternativas habituales no son apropiadas o han fallado. Revisar QT; no combinar con fármacos que lo prolonguen. No requiere ajuste renal.",
+        precautions: QUINOLONE_PRECAUTIONS,
+        search: "moxifloxacino moxi moxifloxacin quinolona quinolonas fluoroquinolonas neumococo atipicos legionella anaerobios qt no itu",
+        sourceIds: ["aemps-moxifloxacin", ...QUINOLONE_SOURCES],
+      },
     ];
 
     const ANTIBIOTICS = Object.freeze(
@@ -297,18 +366,18 @@
     );
 
     const mechanismData = [
-      { id: "blee", name: "BLEE", icon: "🧬", group: "green", question: "¿Cistitis, pielonefritis/cUTI o infección invasiva?", use: "Cistitis baja: opción urinaria activa. Pielonefritis/cUTI: TMP-SMX/quinolona si sensible o carbapenémico. Extraurinaria grave: carbapenémico.", avoid: "Pip-tazo o cefepime como dirigidos en BLEE extraurinaria grave; nitrofurantoína/fosfomicina si pielonefritis.", micro: "AST completo, foco y posibilidad real de paso oral.", search: "blee esbl carbapenemico cistitis pielonefritis cuti cefepime piperacilina" },
+      { id: "blee", name: "BLEE", icon: "🧬", group: "green", question: "¿Cistitis, pielonefritis/cUTI o infección invasiva?", use: "Cistitis baja: opción urinaria activa. Pielonefritis/cUTI: TMP-SMX, ciprofloxacino o levofloxacino si sensible; carbapenémico según gravedad. Extraurinaria grave: carbapenémico.", avoid: "Pip-tazo o cefepime como dirigidos en BLEE extraurinaria grave; nitrofurantoína/fosfomicina si pielonefritis.", micro: "AST completo, foco y posibilidad real de paso oral.", search: "blee esbl carbapenemico cistitis pielonefritis cuti cefepime piperacilina" },
       { id: "ampc", name: "AmpC inducible", icon: "🧬", group: "amber", question: "¿E. cloacae complex, K. aerogenes o C. freundii?", use: "Cefepime si sensible y CMI favorable. Carbapenémico si grave, foco profundo, CMI problemática o sospecha de BLEE coproducida.", avoid: "Ceftriaxona/cefotaxima/ceftazidima en infección invasiva por especies de riesgo.", micro: "Identificar especie y CMI de cefepime; valorar BLEE coproducida.", search: "ampc enterobacter cloacae complex klebsiella aerogenes citrobacter freundii cefepime ceftriaxona" },
       { id: "kpc", name: "CRE-KPC", icon: "🧬", group: "red", question: "¿Carbapenemasa KPC confirmada?", use: "Meropenem-vaborbactam, ceftazidima-avibactam o imipenem-relebactam si sensible.", avoid: "Combinaciones antiguas con aminoglucósido/polimixina si ya hay beta-lactámico activo.", micro: "Tipado de carbapenemasa + AST de nuevos BL/BLI.", search: "kpc cre meropenem vaborbactam ceftazidima avibactam imipenem relebactam" },
       { id: "oxa48", name: "CRE OXA-48-like", icon: "🧬", group: "red", question: "¿OXA-48-like?", use: "Ceftazidima-avibactam como referencia si sensible. Cefiderocol como alternativa según caso.", avoid: "Meropenem-vaborbactam o imipenem-relebactam como si fueran KPC.", micro: "Tipado de carbapenemasa; confirmar actividad de CAZ-AVI.", search: "oxa48 oxa 48 ceftazidima avibactam cefiderocol" },
-      { id: "mbl", name: "MBL", icon: "🧬", group: "red", question: "¿NDM/VIM/IMP?", use: "Ceftazidima-avibactam + aztreonam o cefiderocol. Aztreonam-avibactam/cefepime-zidebactam según disponibilidad.", avoid: "CAZ-AVI en monoterapia. Vaborbactam/relebactam no inhiben MBL.", micro: "Probar combinación CAZ-AVI + aztreonam si el laboratorio puede.", search: "mbl ndm vim imp aztreonam avibactam cefiderocol" },
+      { id: "mbl", name: "MBL", icon: "🧬", group: "red", question: "¿Enterobacterales con NDM u otra MBL?", use: MBL_GUIDANCE.doItems.join(" "), avoid: MBL_GUIDANCE.avoidItems.join(" "), micro: MBL_GUIDANCE.microItems.join(" "), sourceIds: MBL_GUIDANCE.sourceIds, search: "mbl ndm vim imp aztreonam avibactam cefiderocol" },
       { id: "dtr-pa", germId: "dtr", name: "Pseudomonas DTR", icon: "🧬", group: "green", question: "¿Conserva algún beta-lactámico clásico?", use: "Si conserva BL clásico no carbapenémico, usarlo a dosis altas/perfusión extendida. Si DTR: ceftolo-tazo, CAZ-AVI, IMI-REL o cefiderocol según AST.", avoid: "Combinación de rutina si ya hay beta-lactámico activo confirmado.", micro: "AST para nuevos BL/BLI y cefiderocol.", search: "pseudomonas dtr ceftolozano tazobactam cefiderocol" },
       { id: "crab", name: "CRAB", icon: "🧬", group: "red", question: "¿Infección real o colonización?", use: "Sulbactam-durlobactam + meropenem/imipenem si disponible. Si no, ampicilina-sulbactam alta dosis + otro agente.", avoid: "Meropenem/imipenem solos. Tratar colonización respiratoria sin síndrome.", micro: "Confirmar sensibilidad y discutir combinación con PROA.", search: "crab acinetobacter sulbactam durlobactam colistina cefiderocol" },
-      { id: "steno", name: "Stenotrophomonas", icon: "🧬", group: "amber", question: "¿Colonización o infección real moderada-grave?", use: "Infección real + AST + PROA. Dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam.", avoid: "Ceftazidima y carbapenémicos. Tratar hallazgo casual en vía aérea.", micro: "Solicitar sensibilidad a TMP-SMX, levofloxacino, minociclina y cefiderocol; discutir si hay que combinar.", search: "stenotrophomonas infeccion real ast proa tmp smx minociclina levofloxacino cefiderocol" },
+      { id: "steno", name: "Stenotrophomonas", icon: "🧬", group: "amber", question: "¿Colonización o infección invasiva?", use: STENO_GUIDANCE.doItems.join(" "), avoid: STENO_GUIDANCE.avoidItems.join(" "), micro: STENO_GUIDANCE.microItems.join(" "), sourceIds: STENO_GUIDANCE.sourceIds, search: "stenotrophomonas infeccion real ast proa tmp smx minociclina levofloxacino cefiderocol" },
     ];
 
     const MECHANISMS = Object.freeze(
-      mechanismData.map((item) => Object.freeze({ ...item, sourceIds: ["idsa-amr-2024"] })),
+      mechanismData.map((item) => Object.freeze({ ...item, sourceIds: item.sourceIds ?? ["idsa-amr-2024"] })),
     );
 
     const caseData = [
@@ -316,9 +385,11 @@
       { id: "ampc-ceftriaxone", title: "Enterobacter cloacae bacteriémico “S” a ceftriaxona", setup: "El informe inicial puede parecer cómodo, pero es una especie de riesgo AmpC.", answer: "Evita ceftriaxona en infección invasiva. Cefepime si CMI favorable o carbapenémico si gravedad/CMI/BLEE.", sourceIds: AMR_SOURCES },
       { id: "ertapenem-pseudomonas", title: "Ertapenem para neumonía nosocomial con riesgo de Pseudomonas", setup: "Ertapenem cubre BLEE y anaerobios, pero tiene hueco APE.", answer: "Error: no cubre Pseudomonas. Usa antipseudomónico real si el riesgo es clínicamente relevante." },
       { id: "steno-colonization", title: "Stenotrophomonas en esputo de EPOC estable", setup: "No fermentador en vía aérea crónica sin fiebre, sin infiltrado nuevo, sin deterioro claro.", answer: "Probable colonización. No escalar por cultivo aislado; tratar solo si síndrome infeccioso real.", sourceIds: AMR_SOURCES },
-      { id: "blee-branches", title: "BLEE no es una sola rama", setup: "El mismo antibiograma no significa lo mismo en cistitis baja, pielonefritis/cUTI o bacteriemia.", answer: "Cistitis baja: opción urinaria activa. Pielo/cUTI: TMP-SMX/quinolona si sensible o carbapenémico. Bacteriemia/foco extraurinario: carbapenémico; si crítico, meropenem/imipenem.", sourceIds: AMR_SOURCES },
+      { id: "blee-branches", title: "BLEE: el tratamiento depende del foco", setup: "La elección del antibiótico depende del foco de la infección, de la gravedad y del antibiograma.", answer: "En la cistitis, elegir un antibiótico activo y adecuado para la infección urinaria baja. En la pielonefritis o la infección urinaria complicada, valorar cotrimoxazol, ciprofloxacino o levofloxacino si la bacteria es sensible; un carbapenémico puede ser necesario si esas opciones no son adecuadas o el paciente está grave. En la bacteriemia y otras infecciones fuera del aparato urinario, se prefieren los carbapenémicos; en pacientes críticos, meropenem o imipenem-cilastatina.", sourceIds: ["local-proa-fjd", "idsa-amr-2026"] },
       { id: "gonococcus-pharynx", title: "Gonococo faríngeo tratado con cefixima", setup: "Cefixima puede aparecer como alternativa oral, pero faringe es un sitio de erradicación difícil.", answer: "Ceftriaxona si es posible. Si hubo cefixima o sospecha de fallo: test de curación 7-14 días; cultivo/AST y experto si persiste.", sourceIds: ["cdc-gonorrhea-2021"] },
       { id: "daptomycin-pneumonia", title: "Daptomicina para neumonía por SARM", setup: "Daptomicina es potente anti-SARM, pero no en pulmón.", answer: "Error de foco: se inactiva por surfactante. Considera linezolid/vancomicina según contexto y protocolo." },
+      { id: "ciprofloxacin-pneumococcus", title: "Ciprofloxacino para una NAC neumocócica", setup: "Que una quinolona tenga actividad frente a Pseudomonas no la convierte en una opción para neumococo.", answer: "Ciprofloxacino tiene eficacia insuficiente frente a estreptococos. Elegir el tratamiento por foco, patógeno y protocolo; no intercambiar quinolonas por pertenecer a la misma familia.", sourceIds: ["aemps-ciprofloxacin"] },
+      { id: "moxifloxacin-uti", title: "Moxifloxacino como sustituto en una ITU", setup: "Se intenta cambiar ciprofloxacino o levofloxacino por otra quinolona disponible.", answer: "Moxifloxacino no está indicado para ITU ni cubre Pseudomonas. Elegir una opción urinaria con sensibilidad confirmada; en cistitis no complicada, reservar fluoroquinolonas si no pueden usarse las alternativas habituales.", sourceIds: ["aemps-moxifloxacin", "aemps-fluoroquinolonas", "idsa-amr-2026"] },
     ];
 
     const CASES = Object.freeze(
@@ -345,7 +416,7 @@
 
   // src/coverage.js
   __modules["coverage"] = (() => {
-    const COVERAGE_LEVELS = Object.freeze(["yes", "maybe", "no"]);
+    const COVERAGE_LEVELS = Object.freeze(["yes", "maybe", "no", "unknown"]);
 
     const COVERAGE_TARGETS = Object.freeze([
       target("strep", "Strep", "Streptococcus spp."),
@@ -472,12 +543,83 @@
         },
       }),
       coverage({
-        id: "mero-imi",
-        label: "Meropenem/imipenem",
+        id: "meropenem",
+        catalogId: "mero-imi",
+        label: "Meropenem",
         group: "Monobactámicos y carbapenémicos",
+        sourceIds: ["local-proa-fjd", "aemps-meropenem"],
+        notes: {
+          efaecalis: "E. faecalis: actividad limitada; CIMA describe sensibilidad natural intermedia. Confirmar AST y pauta específica.",
+          listeria: "Listeria: meropenem tiene actividad; el espectro no sustituye la elección de pauta para meningitis según protocolo.",
+        },
         values: {
-          strep: "yes", sasm: "maybe", sarm: "no", efaecalis: "no", listeria: "no",
+          strep: "yes", sasm: "maybe", sarm: "no", efaecalis: "maybe", listeria: "yes",
           enterobacterales: "yes", blee: "yes", pseudomonas: "yes", anaerobes: "yes", atypicals: "no",
+        },
+      }),
+      coverage({
+        id: "imipenem",
+        catalogId: "mero-imi",
+        label: "Imipenem/cilastatina",
+        group: "Monobactámicos y carbapenémicos",
+        sourceIds: ["local-proa-fjd", "aemps-imipenem", "dailymed-imipenem"],
+        notes: {
+          listeria: "Listeria: actividad in vitro sin eficacia clínica establecida en la ficha estadounidense. Imipenem/cilastatina no se recomienda para meningitis (CIMA).",
+        },
+        values: {
+          strep: "yes", sasm: "maybe", sarm: "no", efaecalis: "yes", listeria: "maybe",
+          enterobacterales: "yes", blee: "yes", pseudomonas: "yes", anaerobes: "yes", atypicals: "no",
+        },
+      }),
+      coverage({
+        id: "ciprofloxacin",
+        label: "Ciprofloxacino",
+        group: "Fluoroquinolonas",
+        sourceIds: ["aemps-ciprofloxacin", "idsa-amr-2026", "eucast-2026-quinolones"],
+        notes: {
+          strep: "Strep/neumococo: eficacia insuficiente; no elegir ciprofloxacino.",
+          efaecalis: "E. faecalis: actividad limitada. EUCAST solo da puntos de corte para ITU no complicada; no extrapolar a otros focos.",
+          blee: "BLEE: ciprofloxacino solo con sensibilidad confirmada y foco adecuado; resistencia asociada frecuente.",
+          pseudomonas: "Pseudomonas: exigir AST y exposición adecuada, sin asumir cobertura empírica.",
+          atypicals: "Atípicos: actividad frente a Legionella; no extrapolar a todo el grupo.",
+        },
+        values: {
+          strep: "no", sasm: "maybe", sarm: "no", efaecalis: "maybe", listeria: "no",
+          enterobacterales: "maybe", blee: "maybe", pseudomonas: "maybe", anaerobes: "no", atypicals: "maybe",
+        },
+      }),
+      coverage({
+        id: "levofloxacin",
+        label: "Levofloxacino",
+        group: "Fluoroquinolonas",
+        sourceIds: ["aemps-levofloxacin", "idsa-amr-2026", "eucast-2026-quinolones"],
+        notes: {
+          efaecalis: "E. faecalis: EUCAST solo da puntos de corte para ITU no complicada; no extrapolar a otros focos.",
+          listeria: "Listeria: sin cobertura clínica establecida en las fuentes revisadas; no asumir actividad terapéutica.",
+          blee: "BLEE: levofloxacino solo con sensibilidad confirmada y foco adecuado; resistencia asociada frecuente.",
+          pseudomonas: "Pseudomonas: exigir AST y exposición adecuada, sin asumir cobertura empírica.",
+          anaerobes: "Anaerobios: actividad parcial que no ofrece cobertura fiable del grupo.",
+        },
+        values: {
+          strep: "yes", sasm: "maybe", sarm: "no", efaecalis: "maybe", listeria: "unknown",
+          enterobacterales: "maybe", blee: "maybe", pseudomonas: "maybe", anaerobes: "no", atypicals: "yes",
+        },
+      }),
+      coverage({
+        id: "moxifloxacin",
+        label: "Moxifloxacino",
+        group: "Fluoroquinolonas",
+        sourceIds: ["aemps-moxifloxacin", "eucast-2026-quinolones"],
+        notes: {
+          efaecalis: "E. faecalis: uso excepcional dirigido; EUCAST no permite informar sensible a moxifloxacino por ausencia de mecanismos de resistencia.",
+          listeria: "Listeria: EUCAST señala evidencia insuficiente en meningitis; no asumir cobertura clínica.",
+          enterobacterales: "Enterobacterales: sensibilidad variable; moxifloxacino no está indicado para ITU.",
+          blee: "BLEE: frecuente resistencia asociada; no extrapolar las opciones urinarias de ciprofloxacino/levofloxacino.",
+          anaerobes: "Anaerobios: algunos sensibles, pero B. fragilis puede ser resistente; no asumir cobertura universal.",
+        },
+        values: {
+          strep: "yes", sasm: "maybe", sarm: "no", efaecalis: "maybe", listeria: "unknown",
+          enterobacterales: "maybe", blee: "maybe", pseudomonas: "no", anaerobes: "maybe", atypicals: "yes",
         },
       }),
     ]);
@@ -486,18 +628,20 @@
       return Object.freeze({ id, shortLabel, label });
     }
 
-    function coverage({ id, label, group, values, catalogId = id }) {
+    function coverage({ id, label, group, values, catalogId = id, sourceIds = ["local-proa-fjd"], notes = {} }) {
       return Object.freeze({
         id,
         catalogId,
         label,
         group,
-        sourceIds: Object.freeze(["local-proa-fjd"]),
+        sourceIds: Object.freeze(sourceIds),
+        notes: Object.freeze({ ...notes }),
         values: Object.freeze({ ...values }),
       });
     }
 
     function coverageSymbol(level) {
+      if (level === "unknown") return "?";
       return level === "yes" ? "✓" : level === "maybe" ? "±" : "✗";
     }
 
@@ -506,6 +650,7 @@
 
   // src/rules.js
   __modules["rules"] = (() => {
+    const { MBL_GUIDANCE, STENO_GUIDANCE } = __modules["clinical-guidance"];
     const FOCUS_OPTIONS = Object.freeze([
       { id: "cistitis", label: "Cistitis baja" },
       { id: "itu-complicada", label: "Pielonefritis / ITU complicada" },
@@ -513,6 +658,7 @@
       { id: "abdomen", label: "Intraabdominal / biliar" },
       { id: "snc", label: "SNC / meningitis" },
       { id: "bacteriemia", label: "Bacteriemia / sepsis" },
+      { id: "endocarditis", label: "Endocarditis" },
       { id: "piel", label: "Piel y partes blandas" },
     ]);
 
@@ -527,14 +673,16 @@
       { id: "crab", label: "CRAB" },
       { id: "steno", label: "Stenotrophomonas" },
       { id: "sarm", label: "SARM" },
-      { id: "enterolisteria", label: "Enterococcus / Listeria" },
+      { id: "sasm", label: "SASM" },
+      { id: "enterococcus", label: "Enterococcus" },
+      { id: "listeria", label: "Listeria" },
       { id: "anaerobios", label: "Anaerobios relevantes" },
     ]);
 
     const SEVERITY_OPTIONS = Object.freeze([
       { id: "estable", label: "Estable" },
       { id: "invasiva", label: "Invasiva / bacteriemia" },
-      { id: "critico", label: "Shock / neutropenia / UCI" },
+      { id: "critico", label: "Shock / paciente crítico" },
     ]);
 
     const SEVERITY_GUIDANCE = Object.freeze({
@@ -551,6 +699,32 @@
 
     const AMR_SOURCES = ["local-proa-fjd", "idsa-amr-2024"];
     const LOCAL_SOURCE = ["local-proa-fjd"];
+    const BLEE_QUINOLONE_SOURCES = [...AMR_SOURCES, "idsa-amr-2026", "aemps-fluoroquinolonas", "aemps-moxifloxacin"];
+    const CURRENT_AMR_SOURCES = ["local-proa-fjd", "idsa-amr-2026"];
+    const STAPH_SOURCES = ["local-proa-fjd", "esc-endocarditis-2023", "idsa-sab-2026"];
+    const SKIN_SOURCES = ["local-proa-fjd", "idsa-ssti-2014"];
+    const RESPIRATORY_SOURCES = ["local-proa-fjd", "idsa-hap-vap-2016"];
+
+    const BACTEREMIA_MICRO = Object.freeze([
+      "Repetir hemocultivos hasta documentar su negativización.",
+      "Realizar ecocardiograma transtorácico; valorar transesofágico según riesgo y resultados.",
+      "Buscar el origen y focos secundarios; revisar catéteres y material implantado con Infecciosas.",
+    ]);
+    const BACTEREMIA_FOLLOW_UP = Object.freeze([
+      "Si persisten los hemocultivos positivos, reevaluar el control del foco y buscar complicaciones.",
+      "Individualizar la duración según la negativización de los cultivos y los focos identificados.",
+      "La mejoría inicial no basta para decidir el alta o el cambio a tratamiento oral.",
+    ]);
+    const FOCUS_FOLLOW_UP = Object.freeze({
+      cistitis: ["Revisar la respuesta y el urocultivo; ajustar al antibiótico activo más adecuado.", "Si aparecen fiebre, dolor lumbar o deterioro, reevaluar el foco y la gravedad."],
+      "itu-complicada": ["Revisar cultivos y evolución; buscar obstrucción o una colección si la respuesta no es adecuada.", "Valorar el paso a vía oral cuando haya estabilidad, sensibilidad confirmada y buena absorción."],
+      resp: ["Revisar la calidad de la muestra, los cultivos y la evolución respiratoria.", "Si no mejora, buscar complicaciones y reconsiderar el diagnóstico; ajustar tratamiento y duración."],
+      abdomen: ["Comprobar que el foco abdominal está controlado.", "Ajustar el tratamiento a cultivos, evolución y complicaciones; el antibiótico no sustituye un drenaje necesario."],
+      snc: ["Vigilar la evolución neurológica y las complicaciones.", "Ajustar el tratamiento y su duración con Infecciosas según el microorganismo y la evolución; no aplicar un cambio automático a vía oral."],
+      bacteriemia: ["Revisar el origen, el control del foco y los resultados microbiológicos.", "Individualizar la duración y la desescalada según el microorganismo, el foco y la evolución."],
+      endocarditis: ["Coordinar el seguimiento con el equipo de endocarditis y reevaluar posibles complicaciones.", "El tratamiento ambulatorio o por vía oral requiere selección y supervisión específicas; no depende solo de estar afebril."],
+      piel: ["Revisar la extensión de la lesión y la respuesta al tratamiento.", "Comprobar el drenaje de las colecciones y reevaluar si hay progresión o signos sistémicos."],
+    });
 
     const GERM_GUIDANCE = Object.freeze({
       blee: guidance({
@@ -595,13 +769,7 @@
         microItems: ["Tipado de carbapenemasa y AST completo."],
         sourceIds: AMR_SOURCES,
       }),
-      mbl: guidance({
-        headline: "MBL: avibactam no inhibe MBL; necesitas aztreonam o cefiderocol",
-        doItems: ["Ceftazidima-avibactam + aztreonam.", "Cefiderocol si sensible y foco encaja.", "Aztreonam-avibactam o cefepime-zidebactam si disponibles/protocolo."],
-        avoidItems: ["CAZ-AVI en monoterapia.", "Vaborbactam/relebactam como si inhibieran MBL."],
-        microItems: ["Pedir prueba/comentario de combinación CAZ-AVI + aztreonam si posible."],
-        sourceIds: AMR_SOURCES,
-      }),
+      mbl: guidance(MBL_GUIDANCE),
       crab: guidance({
         headline: "CRAB: primero infección real, luego sulbactam",
         doItems: ["Confirmar clínica compatible y control de foco.", "Sulbactam-durlobactam + meropenem/imipenem si disponible.", "Si no disponible: ampicilina-sulbactam alta dosis + otro agente activo según sensibilidad."],
@@ -609,13 +777,7 @@
         microItems: ["Consultar PROA/Infecciosas y confirmar sensibilidad."],
         sourceIds: AMR_SOURCES,
       }),
-      steno: guidance({
-        headline: "Stenotrophomonas: colonización frecuente",
-        doItems: ["Tratar solo si infección real, bacteriemia o neumonía compatible.", "Confirmar AST y comentar con PROA antes de combinar automáticamente.", "Si moderada-grave: dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam."],
-        avoidItems: ["Carbapenémicos.", "Ceftazidima como tratamiento.", "Tratar cultivo respiratorio aislado en paciente estable."],
-        microItems: ["Pedir sensibilidad a TMP-SMX, minociclina, levofloxacino y cefiderocol; discutir necesidad de combinación."],
-        sourceIds: AMR_SOURCES,
-      }),
+      steno: guidance(STENO_GUIDANCE),
       sarm: guidance({
         headline: "SARM: el foco decide vancomicina, daptomicina, linezolid o beta-lactámico anti-SARM",
         doItems: ["Vancomicina o daptomicina en bacteriemia/endocarditis según foco.", "Ceftarolina como beta-lactámico anti-SARM dirigido; no extrapolar a ceftobiprol sin protocolo.", "Control de foco: drenaje, retirada de catéter, eco si bacteriemia."],
@@ -623,11 +785,25 @@
         microItems: ["Solicitar AST completo y revisar desescalada a 48-72 h."],
         sourceIds: LOCAL_SOURCE,
       }),
-      enterolisteria: guidance({
-        headline: "Enterococcus/Listeria: cefalosporinas no bastan",
+      sasm: guidance({
+        headline: "SASM: elegir un betalactámico dirigido cuando sea posible",
+        doItems: ["Cloxacilina o cefazolina según foco, sensibilidad y alergias.", "Revisar el control del foco y descartar infección profunda si hay bacteriemia."],
+        avoidItems: ["Mantener cobertura anti-SARM sin indicación tras confirmar SASM."],
+        microItems: ["Confirmar la sensibilidad a meticilina y ajustar el tratamiento al foco."],
+        sourceIds: STAPH_SOURCES,
+      }),
+      enterococcus: guidance({
+        headline: "Enterococcus: identificar la especie y la sensibilidad",
         doItems: ["E. faecalis sensible: ampicilina/amoxicilina o penicilina G dirigida si sensible.", "En E. faecalis endocarditis, ceftriaxona solo como sinergia con ampicilina según protocolo.", "Si E. faecium/VRE, estrategia dirigida y PROA."],
-        avoidItems: ["Ceftriaxona/cefepime/ceftazidima como cobertura de Enterococcus o Listeria.", "Olvidar Listeria en meningitis de anciano, embarazo, neonato o inmunodeprimido."],
+        avoidItems: ["Cefalosporinas en monoterapia para Enterococcus.", "Extrapolar una pauta para E. faecalis a E. faecium."],
         microItems: ["Solicitar AST completo y revisar desescalada a 48-72 h."],
+        sourceIds: LOCAL_SOURCE,
+      }),
+      listeria: guidance({
+        headline: "Listeria: las cefalosporinas no proporcionan cobertura",
+        doItems: ["En meningitis, ampicilina IV o amoxicilina IV según protocolo.", "Revisar la necesidad de otras coberturas mientras se confirma la etiología."],
+        avoidItems: ["Ceftriaxona, cefotaxima o cefepime como tratamiento de Listeria.", "Confundir amoxicilina oral con una pauta de meningitis."],
+        microItems: ["Obtener hemocultivos y estudiar el líquido cefalorraquídeo cuando sea seguro."],
         sourceIds: LOCAL_SOURCE,
       }),
       anaerobios: guidance({
@@ -642,19 +818,19 @@
     const SCENARIO_RULES = Object.freeze([
       rule("blee-cistitis", 300, { germ: "blee", focus: "cistitis", severity: "estable" }, guidance({
         headline: "BLEE + cistitis baja: ahorrar carbapenémico si hay opción urinaria",
-        doItems: ["Nitrofurantoína o TMP-SMX si sensible y encaja clínicamente.", "Quinolona si sensible y beneficio supera toxicidad.", "Fosfomicina solo si E. coli y cistitis baja encaja."],
-        avoidItems: ["Carbapenémico si hay opción urinaria activa y paciente estable.", "Nitrofurantoína/fosfomicina si pielonefritis, prostatitis o bacteriemia."],
+        doItems: ["Nitrofurantoína o TMP-SMX si sensible y encaja clínicamente.", "Ciprofloxacino o levofloxacino solo si sensible, sin alternativa habitual utilizable y tras valorar beneficio-riesgo.", "Fosfomicina solo si E. coli y cistitis baja encaja."],
+        avoidItems: ["Carbapenémico si hay opción urinaria activa y paciente estable.", "Nitrofurantoína/fosfomicina si pielonefritis, prostatitis o bacteriemia.", "Moxifloxacino como opción urinaria."],
         microItems: ["AST completo con opciones orales activas si puede haber desescalada.", "Revisar foco, control de foco, absorción y estabilidad antes de paso oral."],
-        sourceIds: AMR_SOURCES,
+        sourceIds: BLEE_QUINOLONE_SOURCES,
       })),
       rule("blee-snc", 300, { germ: "blee", focus: "snc" }, guidance({
         headline: "BLEE + SNC: no ertapenem; revisar penetración meníngea",
         doItems: ["Meropenem si carbapenémico y el foco SNC exige cobertura BLEE.", "Añadir coberturas de meningitis según edad, inmunosupresión y protocolo.", "Avisar a Micro/PROA por foco crítico."],
-        avoidItems: ["Ertapenem en SNC.", "Dar por cubierta Listeria con ceftriaxona o carbapenémico.", "Paso oral precoz sin estabilidad ni control microbiológico."],
+        avoidItems: ["Ertapenem o imipenem como pauta de meningitis.", "Dar por cubierta Listeria con ceftriaxona; meropenem tiene actividad, pero revisar la pauta específica según protocolo.", "Paso oral precoz sin estabilidad ni control microbiológico."],
         microItems: ["AST completo con opciones orales activas si puede haber desescalada.", "Revisar foco, control de foco, absorción y estabilidad antes de paso oral."],
-        sourceIds: AMR_SOURCES,
+        sourceIds: [...AMR_SOURCES, "aemps-meropenem", "aemps-imipenem"],
       })),
-      rule("blee-critical", 250, { germ: "blee", severity: "critico" }, guidance({
+      rule("blee-critical", 250, { germ: "blee", focus: ["itu-complicada", "resp", "abdomen", "bacteriemia", "piel"], severity: "critico" }, guidance({
         headline: "BLEE + shock/UCI: meropenem o imipenem, no ertapenem de entrada",
         doItems: ["Meropenem/imipenem si carbapenémico y paciente crítico.", "Optimizar exposición según protocolo, función renal y foco.", "Desescalar cuando AST, evolución y control de foco lo permitan."],
         avoidItems: ["Ertapenem en shock/UCI o hipoalbuminemia.", "Pip-tazo o cefepime como dirigido en BLEE grave aunque informe sensibilidad.", "Contar días de antibiótico inactivo como tratamiento efectivo."],
@@ -663,10 +839,10 @@
       })),
       rule("blee-cuti", 200, { germ: "blee", focus: "itu-complicada" }, guidance({
         headline: "BLEE + pielonefritis/cUTI: no tratar como cistitis baja",
-        doItems: ["TMP-SMX o quinolona si sensible, estable y con buena absorción.", "Carbapenémico si grave, sin opción oral activa o mala evolución.", "Ertapenem puede encajar si estable y sin riesgo Pseudomonas/SNC."],
-        avoidItems: ["Nitrofurantoína o fosfomicina para pielonefritis, prostatitis o cUTI sistémica.", "Pip-tazo como opción preferida si hay alternativa más fiable.", "Mantener carbapenémico si hay paso oral activo y estabilidad real."],
+        doItems: ["TMP-SMX, ciprofloxacino o levofloxacino si sensible, estable y con buena absorción.", "Carbapenémico si grave, sin opción oral activa o mala evolución.", "Ertapenem puede encajar si estable y sin riesgo Pseudomonas/SNC."],
+        avoidItems: ["Nitrofurantoína o fosfomicina para pielonefritis, prostatitis o cUTI sistémica.", "Pip-tazo como opción preferida si hay alternativa más fiable.", "Mantener carbapenémico si hay paso oral activo y estabilidad real.", "Moxifloxacino como opción urinaria."],
         microItems: ["AST completo con opciones orales activas si puede haber desescalada.", "Revisar foco, control de foco, absorción y estabilidad antes de paso oral."],
-        sourceIds: AMR_SOURCES,
+        sourceIds: BLEE_QUINOLONE_SOURCES,
       })),
       rule("blee-respiratory", 200, { germ: "blee", focus: "resp" }, guidance({
         headline: "BLEE respiratoria/nosocomial: vigilar Pseudomonas antes de elegir ertapenem",
@@ -677,24 +853,145 @@
       })),
       rule("blee-extraurinary", 100, { germ: "blee", focus: ["bacteriemia", "abdomen", "piel"] }, guidance({
         headline: "BLEE invasiva/extraurinaria: carbapenémico como ancla",
-        doItems: ["Ertapenem si estable, no crítico, sin SNC/neumonía nosocomial/riesgo Pseudomonas y albúmina razonable.", "Meropenem/imipenem si foco profundo, bacteriemia grave o dudas de exposición.", "Paso oral a TMP-SMX/quinolona solo si sensible, estable, buen control de foco y absorción fiable."],
+        doItems: ["Ertapenem si estable, no crítico, sin SNC/neumonía nosocomial/riesgo Pseudomonas y albúmina razonable.", "Meropenem/imipenem si foco profundo, bacteriemia grave o dudas de exposición.", "Paso oral a TMP-SMX, ciprofloxacino o levofloxacino solo si sensible, estable, buen control de foco y absorción fiable."],
         avoidItems: ["Pip-tazo o cefepime como dirigido en BLEE extraurinaria grave aunque informe sensibilidad.", "Ertapenem si shock/UCI, hipoalbuminemia, SNC o riesgo Pseudomonas.", "Contar días de antibiótico inactivo como tratamiento efectivo."],
         microItems: ["AST completo con opciones orales activas si puede haber desescalada.", "Revisar foco, control de foco, absorción y estabilidad antes de paso oral."],
-        sourceIds: AMR_SOURCES,
+        sourceIds: BLEE_QUINOLONE_SOURCES,
       })),
       rule("sarm-respiratory", 200, { germ: "sarm", focus: "resp" }, guidance({
         headline: "SARM respiratorio: no daptomicina",
-        doItems: ["Linezolid o vancomicina según gravedad, bacteriemia y protocolo.", "Ceftarolina si indicación dirigida; ceftobiprol solo si ficha/protocolo lo justifica."],
-        avoidItems: ["Beta-lactámicos habituales.", "Daptomicina en neumonía.", "Tratar absceso sin drenaje si es drenable."],
-        microItems: ["Solicitar AST completo y revisar desescalada a 48-72 h."],
+        doItems: ["Linezolid o vancomicina según sensibilidad, función renal, hemograma, interacciones y protocolo.", "Si hay bacteriemia, revisar también su manejo específico con Infecciosas.", "Buscar complicaciones pleurales si la evolución no es adecuada."],
+        avoidItems: ["Daptomicina para tratar la neumonía.", "Betalactámicos habituales como cobertura de SARM.", "Interpretar cualquier aislamiento respiratorio como infección."],
+        microItems: ["Obtener una muestra respiratoria adecuada y hemocultivos cuando estén indicados.", "Revisar el antibiograma y la necesidad de mantener cobertura anti-SARM."],
+        sourceIds: [...RESPIRATORY_SOURCES, "aemps-linezolid", "idsa-sab-2026"],
+      })),
+      rule("listeria-snc", 200, { germ: "listeria", focus: "snc" }, guidance({
+        headline: "SNC con riesgo Listeria: añade aminopenicilina",
+        doItems: ["Ampicilina IV o amoxicilina IV según protocolo para cubrir Listeria.", "Mantener las otras coberturas de meningitis mientras sean necesarias; ceftriaxona o cefotaxima no cubren Listeria."],
+        avoidItems: ["Cefalosporinas como tratamiento de Listeria.", "Retrasar un tratamiento indicado por esperar pruebas diagnósticas.", "Interpretar amoxicilina oral como pauta de meningitis."],
+        microItems: ["Obtener hemocultivos y estudiar el líquido cefalorraquídeo cuando sea seguro.", "Confirmar el microorganismo y revisar el tratamiento con Infecciosas."],
         sourceIds: LOCAL_SOURCE,
       })),
-      rule("listeria-snc", 200, { germ: "enterolisteria", focus: "snc" }, guidance({
-        headline: "SNC con riesgo Listeria: añade aminopenicilina",
-        doItems: ["Ampicilina IV o amoxicilina IV según protocolo para cubrir Listeria.", "Mantener ceftriaxona/cefotaxima para neumococo/meningococo si procede, pero no como anti-Listeria.", "Si aparece Enterococcus, separar E. faecalis sensible de E. faecium/VRE."],
-        avoidItems: ["Ceftriaxona/cefepime/ceftazidima como cobertura de Enterococcus o Listeria.", "Olvidar Listeria en meningitis de anciano, embarazo, neonato o inmunodeprimido."],
-        microItems: ["Solicitar AST completo y revisar desescalada a 48-72 h."],
-        sourceIds: LOCAL_SOURCE,
+      rule("sarm-bacteremia", 200, { germ: "sarm", focus: "bacteriemia", severity: ["invasiva", "critico"] }, guidance({
+        headline: "SARM en sangre: tratar y buscar el foco",
+        doItems: ["Vancomicina IV o daptomicina según foco, sensibilidad y protocolo.", "Si hay neumonía concomitante, daptomicina no cubre el foco pulmonar.", "Controlar el foco y valorar la retirada de material infectado."],
+        avoidItems: ["Considerar un hemocultivo positivo para S. aureus como contaminación sin estudiarlo.", "Elegir el tratamiento solo por la mejoría de la fiebre."],
+        microItems: BACTEREMIA_MICRO,
+        followUpItems: BACTEREMIA_FOLLOW_UP,
+        sourceIds: STAPH_SOURCES,
+      })),
+      rule("sarm-skin-stable", 200, { germ: "sarm", focus: "piel", severity: "estable" }, guidance({
+        headline: "SARM en piel: distinguir absceso e infección difusa",
+        doItems: ["Drenar el absceso cuando corresponda y valorar si necesita además antibiótico.", "Si se indica tratamiento oral, cotrimoxazol, doxiciclina o clindamicina según sensibilidad y protocolo."],
+        avoidItems: ["Dar por cubiertos los estreptococos con cotrimoxazol o doxiciclina.", "Tratar una colección drenable solo con antibióticos."],
+        microItems: ["Cultivar el pus cuando proceda y revisar el antibiograma."],
+        sourceIds: SKIN_SOURCES,
+      })),
+      rule("sarm-skin-invasive", 200, { germ: "sarm", focus: "piel", severity: ["invasiva", "critico"] }, guidance({
+        headline: "SARM en piel con infección grave: tratamiento IV y control del foco",
+        doItems: ["Vancomicina IV; valorar alternativas según foco y sensibilidad.", "Si se sospecha infección necrosante, valoración quirúrgica urgente y cobertura adicional según protocolo."],
+        avoidItems: ["Retrasar la cirugía si se sospecha necrosis.", "Suponer que cubrir SARM basta ante una infección polimicrobiana."],
+        microItems: ["Obtener cultivos profundos y hemocultivos cuando estén indicados.", "Si se confirma bacteriemia por S. aureus, seguir su ruta específica."],
+        sourceIds: [...SKIN_SOURCES, "idsa-sab-2026"],
+      })),
+      rule("sarm-endocarditis", 200, { germ: "sarm", focus: "endocarditis", severity: ["invasiva", "critico"] }, guidance({
+        headline: "Endocarditis por SARM: tratamiento coordinado por un equipo especializado",
+        doItems: ["Vancomicina o una pauta combinada con daptomicina según sensibilidad y protocolo especializado.", "Distinguir válvula nativa, prótesis y dispositivo intracardiaco; valorar indicación quirúrgica."],
+        avoidItems: ["Extrapolar la pauta de válvula nativa a una prótesis.", "Añadir gentamicina de rutina en endocarditis estafilocócica sobre válvula nativa."],
+        microItems: ["Hemocultivos de control, ecocardiografía y evaluación de complicaciones.", "Optimizar exposición y vigilar toxicidad con Infecciosas y Farmacia."],
+        sourceIds: STAPH_SOURCES,
+      })),
+      rule("sasm-bacteremia", 200, { germ: "sasm", focus: "bacteriemia", severity: ["invasiva", "critico"] }, guidance({
+        headline: "SASM en sangre: cloxacilina o cefazolina como tratamiento dirigido",
+        doItems: ["Elegir cloxacilina o cefazolina IV cuando sean adecuadas para el paciente.", "Buscar el origen y controlar el foco; consultar con Infecciosas."],
+        avoidItems: ["Mantener vancomicina por comodidad si puede utilizarse un betalactámico dirigido.", "Confundir desaparición de la fiebre con resolución de la bacteriemia."],
+        microItems: BACTEREMIA_MICRO,
+        followUpItems: BACTEREMIA_FOLLOW_UP,
+        sourceIds: STAPH_SOURCES,
+      })),
+      rule("sasm-endocarditis", 200, { germ: "sasm", focus: "endocarditis", severity: ["invasiva", "critico"] }, guidance({
+        headline: "Endocarditis por SASM: betalactámico dirigido y evaluación de complicaciones",
+        doItems: ["Cloxacilina o cefazolina IV según alergias y protocolo.", "Si hay prótesis, adaptar la pauta con el equipo de endocarditis."],
+        avoidItems: ["Añadir gentamicina de rutina en válvula nativa.", "Aplicar una pauta corta sin confirmar que el escenario la permite."],
+        microItems: ["Hemocultivos de control y ecocardiografía.", "Revisar complicaciones, material infectado e indicación quirúrgica."],
+        sourceIds: STAPH_SOURCES,
+      })),
+      rule("sasm-skin", 200, { germ: "sasm", focus: "piel" }, guidance({
+        headline: "SASM en piel: tratamiento dirigido y drenaje cuando corresponda",
+        doItems: ["Elegir un betalactámico antiestafilocócico según extensión y gravedad; cloxacilina o cefazolina si se necesita tratamiento IV.", "Drenar las colecciones y reevaluar si hay signos de infección profunda."],
+        avoidItems: ["Ampliar a SARM sin indicación tras confirmar SASM."],
+        microItems: ["Ajustar a cultivos; si hay bacteriemia, seguir la ruta correspondiente."],
+        sourceIds: SKIN_SOURCES,
+      })),
+      rule("ampc-cistitis", 200, { germ: "ampc", focus: "cistitis", severity: "estable" }, guidance({
+        headline: "AmpC y cistitis: elegir según sensibilidad",
+        doItems: ["Nitrofurantoína o cotrimoxazol si la bacteria es sensible y el foco es exclusivamente vesical."],
+        avoidItems: ["Extrapolar una opción de cistitis a pielonefritis o bacteriemia."],
+        microItems: ["Confirmar especie y antibiograma; revisar opciones orales activas."],
+        sourceIds: CURRENT_AMR_SOURCES,
+      })),
+      rule("ampc-cuti", 200, { germ: "ampc", focus: "itu-complicada" }, guidance({
+        headline: "AmpC e infección urinaria alta: elegir un antibiótico adecuado para el foco",
+        doItems: ["Cotrimoxazol, ciprofloxacino o levofloxacino si la bacteria es sensible y el estado clínico lo permite.", "Si se precisa un betalactámico IV, valorar cefepime según sensibilidad; carbapenémico si está justificado."],
+        avoidItems: ["Nitrofurantoína para pielonefritis.", "Ceftriaxona como tratamiento dirigido de una infección invasiva por AmpC de riesgo."],
+        microItems: ["Revisar urocultivo, función renal y posible obstrucción."],
+        sourceIds: [...CURRENT_AMR_SOURCES, "aemps-fluoroquinolonas"],
+      })),
+      rule("ampc-extraurinary", 200, { germ: "ampc", focus: ["resp", "abdomen", "piel"] }, guidance({
+        headline: "AmpC fuera de la vía urinaria: cefepime si es adecuado",
+        doItems: ["Valorar cefepime según antibiograma, exposición y función renal.", "Considerar carbapenémico si hay BLEE asociada o cefepime no resulta adecuado."],
+        avoidItems: ["Ceftriaxona, cefotaxima o ceftazidima como tratamiento dirigido de infección invasiva.", "Piperacilina-tazobactam como elección automática."],
+        microItems: ["Confirmar especie y sensibilidad; comprobar el control del foco."],
+        sourceIds: CURRENT_AMR_SOURCES,
+      })),
+      rule("ampc-bacteremia", 200, { germ: "ampc", focus: "bacteriemia", severity: ["invasiva", "critico"] }, guidance({
+        headline: "AmpC en sangre: no mantener ceftriaxona por una sensibilidad inicial",
+        doItems: ["Cefepime si resulta adecuado; valorar carbapenémico según sensibilidad y posible BLEE asociada."],
+        avoidItems: ["Ceftriaxona como tratamiento dirigido de bacteriemia por AmpC de riesgo."],
+        microItems: ["Confirmar la especie, el antibiograma y el origen de la bacteriemia."],
+        sourceIds: CURRENT_AMR_SOURCES,
+      })),
+      rule("pseudo-cuti", 200, { germ: "pseudo", focus: "itu-complicada" }, guidance({
+        headline: "Pseudomonas en infección urinaria: antibiograma y control de la obstrucción",
+        doItems: ["Elegir un antipseudomónico activo según antibiograma y gravedad.", "Preferir un betalactámico no carbapenémico activo cuando sea adecuado."],
+        avoidItems: ["Ceftriaxona o ertapenem como cobertura de Pseudomonas.", "Tratar una bacteriuria sin síntomas como una infección urinaria."],
+        microItems: ["Revisar urocultivo, sondaje y obstrucción; consultar con Urología si precisa drenaje."],
+        sourceIds: CURRENT_AMR_SOURCES,
+      })),
+      rule("pseudo-respiratory", 200, { germ: "pseudo", focus: "resp", severity: ["estable", "invasiva"] }, guidance({
+        headline: "Pseudomonas respiratoria: confirmar infección y dirigir el tratamiento",
+        doItems: ["Elegir un antipseudomónico activo según la sensibilidad.", "Sin shock ni alto riesgo de muerte, un antibiótico activo suele bastar como tratamiento dirigido."],
+        avoidItems: ["Tratar colonización respiratoria sin infección compatible.", "Aminoglucósido como único tratamiento de una neumonía."],
+        microItems: ["Revisar la muestra respiratoria y el antibiograma; solicitar sensibilidad ampliada si hay resistencia."],
+        sourceIds: [...RESPIRATORY_SOURCES, "idsa-amr-2026"],
+      })),
+      rule("pseudo-respiratory-critical", 250, { germ: "pseudo", focus: "resp", severity: "critico" }, guidance({
+        headline: "Pseudomonas respiratoria con shock: tratamiento activo y reevaluación precoz",
+        doItems: ["Iniciar cobertura activa según antecedentes y protocolo local; valorar combinación inicial con UCI/Infecciosas.", "Revisar la necesidad de combinación cuando se conozca la sensibilidad y se resuelva el shock."],
+        avoidItems: ["Aminoglucósido como único tratamiento de la neumonía.", "Mantener una combinación sin reevaluar su necesidad."],
+        microItems: ["Obtener muestras respiratorias y hemocultivos; optimizar exposición y función renal."],
+        sourceIds: RESPIRATORY_SOURCES,
+      })),
+      rule("pseudo-bacteremia", 200, { germ: "pseudo", focus: "bacteriemia", severity: ["invasiva", "critico"] }, guidance({
+        headline: "Pseudomonas en sangre: tratamiento activo y búsqueda del origen",
+        doItems: ["Elegir un betalactámico antipseudomónico activo; optimizar exposición según protocolo.", "Revisar catéteres y otros posibles focos."],
+        avoidItems: ["Ceftriaxona, amoxicilina-clavulánico o ertapenem.", "Asumir que todos los antipseudomónicos siguen siendo activos."],
+        microItems: ["Confirmar sensibilidad; si el perfil es DTR, consultar con PROA y solicitar estudio ampliado."],
+        sourceIds: CURRENT_AMR_SOURCES,
+      })),
+      rule("enterococcus-bacteremia", 200, { germ: "enterococcus", focus: "bacteriemia", severity: ["invasiva", "critico"] }, guidance({
+        headline: "Enterococcus en sangre: especie, sensibilidad y posible endocarditis",
+        doItems: ["Ampicilina IV si la especie es sensible y resulta adecuada para el foco.", "En E. faecium o resistencia a vancomicina, acordar tratamiento dirigido con Infecciosas."],
+        avoidItems: ["Cefalosporinas en monoterapia.", "Aplicar una pauta para E. faecalis sin identificar la especie."],
+        microItems: ["Confirmar especie y antibiograma; buscar el origen.", "Valorar endocarditis si persiste la bacteriemia o la clínica lo sugiere."],
+        sourceIds: [...LOCAL_SOURCE, "esc-endocarditis-2023"],
+      })),
+      rule("enterococcus-endocarditis", 200, { germ: "enterococcus", focus: "endocarditis", severity: ["invasiva", "critico"] }, guidance({
+        headline: "Endocarditis por Enterococcus: la especie determina la combinación",
+        doItems: ["En E. faecalis sensible, ampicilina con ceftriaxona es una opción de tratamiento combinado.", "Acordar pauta y duración con el equipo de endocarditis según especie y sensibilidad."],
+        avoidItems: ["Ceftriaxona sola.", "Extrapolar ampicilina con ceftriaxona a E. faecium."],
+        microItems: ["Identificar la especie y revisar resistencia a betalactámicos, vancomicina y aminoglucósidos.", "Hemocultivos de control y evaluación ecocardiográfica."],
+        sourceIds: ["esc-endocarditis-2023"],
       })),
     ]);
 
@@ -702,7 +999,7 @@
       Object.freeze({
         id: "snc-penetration",
         when: { focus: "snc" },
-        exceptGerms: ["enterolisteria", "sarm"],
+        exceptGerms: ["listeria", "sarm"],
         microItems: ["En SNC, revisar penetración meníngea y necesidad de cubrir Listeria según edad/inmunosupresión."],
         sourceIds: LOCAL_SOURCE,
       }),
@@ -750,6 +1047,7 @@
         doItems: Object.freeze([...selected.doItems]),
         avoidItems: Object.freeze([...selected.avoidItems]),
         microItems: Object.freeze(microItems),
+        followUpItems: Object.freeze([...(selected.followUpItems ?? FOCUS_FOLLOW_UP[input.focus] ?? [])]),
         alert: `${SEVERITY_GUIDANCE[input.severity].alert}${scopeNotice}`,
         scope,
         ruleId: selectedRule?.id ?? null,
@@ -772,12 +1070,13 @@
       });
     }
 
-    function guidance({ headline, doItems, avoidItems, microItems, sourceIds }) {
+    function guidance({ headline, doItems, avoidItems, microItems, followUpItems, sourceIds }) {
       return Object.freeze({
         headline,
         doItems: Object.freeze(doItems),
         avoidItems: Object.freeze(avoidItems),
         microItems: Object.freeze(microItems),
+        followUpItems: followUpItems ? Object.freeze([...followUpItems]) : null,
         sourceIds: Object.freeze(sourceIds),
       });
     }
@@ -834,6 +1133,7 @@
     const { COVERAGE, COVERAGE_TARGETS, coverageSymbol } = __modules["coverage"];
     function normalize(text) {
       return String(text ?? "")
+        .trim()
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
@@ -869,6 +1169,7 @@
             antibiotic.covers.join(" "),
             antibiotic.misses.join(" "),
             antibiotic.trap,
+            ...(antibiotic.precautions ?? []),
             antibiotic.search,
           ].join(" "),
         ).includes(needle),
@@ -904,7 +1205,7 @@
               cells: Object.freeze(
                 COVERAGE_TARGETS.map((target) => {
                   const level = entry.values[target.id];
-                  return Object.freeze({ targetId: target.id, level, symbol: coverageSymbol(level) });
+                  return Object.freeze({ targetId: target.id, level, symbol: coverageSymbol(level), note: entry.notes[target.id] ?? "" });
                 }),
               ),
             }),
@@ -959,6 +1260,118 @@
         registeredAt: "2026-08-10",
         scope: "Gonococo, infección faríngea, test de curación y sospecha de fallo.",
         url: "https://www.cdc.gov/std/treatment-guidelines/gonorrhea-adults.htm",
+      }),
+      "idsa-amr-2026": Object.freeze({
+        id: "idsa-amr-2026",
+        title: "IDSA 2026 Guidance on Antimicrobial Resistant Gram-Negative Infections",
+        version: "30 de julio de 2026 · revisión parcial",
+        registeredAt: "2026-09-20",
+        scope: "BLEE (1.1–1.3), rutas de AmpC (2.3–2.7), selección dirigida en Pseudomonas (4.1), NDM (3.5) y Stenotrophomonas invasiva (6.1–6.6). Orientación de EE. UU.; adaptar a disponibilidad, criterios de sensibilidad y PROA local. Revisión dirigida, no actualización íntegra del atlas.",
+        url: "https://www.idsociety.org/practice-guideline/amr-guidance/",
+      }),
+      "idsa-sab-2026": Object.freeze({
+        id: "idsa-sab-2026",
+        title: "IDSA/ESCMID · Bacteriemia por Staphylococcus aureus",
+        version: "Consenso de 9 de septiembre de 2026 · parte 1",
+        registeredAt: "2026-09-20",
+        scope: "Evaluación y seguimiento en adultos: hemocultivos de control, ecocardiografía, focos secundarios y duración individualizada. Esta parte no establece la selección del antibiótico.",
+        url: "https://www.idsociety.org/practice-guideline/staphylococcus-aureus-bacteremia/",
+      }),
+      "esc-endocarditis-2023": Object.freeze({
+        id: "esc-endocarditis-2023",
+        title: "ESC · Guía de endocarditis",
+        version: "2023 · apartados 7.6–7.8",
+        registeredAt: "2026-09-20",
+        scope: "Estafilococos y Enterococcus: diferencias por especie, sensibilidad y válvula nativa o protésica. Contrastado con el PDF original local, páginas 3979–3982. No se reproducen dosis ni duraciones como pautas automáticas.",
+        url: "https://www.escardio.org/guidelines/clinical-practice-guidelines/all-esc-practice-guidelines/endocarditis/",
+      }),
+      "idsa-ssti-2014": Object.freeze({
+        id: "idsa-ssti-2014",
+        title: "IDSA · Infecciones de piel y partes blandas",
+        version: "2014 · abscesos, celulitis e infección necrosante",
+        registeredAt: "2026-09-20",
+        scope: "Drenaje, cultivo, cobertura de SASM/SARM y estreptococos, y valoración quirúrgica urgente si se sospecha necrosis. Adaptar a resistencias y protocolo local.",
+        url: "https://www.idsociety.org/practice-guideline/skin-and-soft-tissue-infections/",
+      }),
+      "idsa-hap-vap-2016": Object.freeze({
+        id: "idsa-hap-vap-2016",
+        title: "ATS/IDSA · Neumonía hospitalaria y asociada a ventilación",
+        version: "2016 · tratamiento dirigido de SARM y Pseudomonas",
+        registeredAt: "2026-09-20",
+        scope: "Vancomicina/linezolid en SARM; tratamiento según sensibilidad en Pseudomonas y reconsideración de la combinación según shock y evolución. El ámbito de la guía es la neumonía hospitalaria o asociada a ventilación.",
+        url: "https://www.idsociety.org/practice-guideline/hap_vap/",
+      }),
+      "aemps-linezolid": Object.freeze({
+        id: "aemps-linezolid",
+        title: "AEMPS CIMA · Linezolid Glenmark 600 mg",
+        version: "Ficha técnica · apartados 4.1 y 4.4",
+        registeredAt: "2026-09-20",
+        scope: "Indicaciones respiratorias por grampositivos sensibles y precauciones hematológicas e interacciones. No extrapolar cobertura a gramnegativos ni asumir que basta ante bacteriemia concomitante.",
+        url: "https://cima.aemps.es/cima/dochtml/ft/81569/FT_81569.html",
+      }),
+      "aemps-meropenem": Object.freeze({
+        id: "aemps-meropenem",
+        title: "AEMPS CIMA · Meronem I.V. 1 g",
+        version: "Ficha técnica consultada · apartados 4.1 y 5.1",
+        registeredAt: "2026-09-19",
+        scope: "Meropenem: actividad frente a Listeria y matiz de sensibilidad natural intermedia de E. faecalis. No equivale a elección terapéutica por foco.",
+        url: "https://cima.aemps.es/cima/dochtml/ft/60640/FT_60640.html",
+      }),
+      "aemps-imipenem": Object.freeze({
+        id: "aemps-imipenem",
+        title: "AEMPS CIMA · Imipenem/Cilastatina Kabi 500 mg/500 mg",
+        version: "Ficha técnica consultada · apartados 4.4 y 5.1",
+        registeredAt: "2026-09-19",
+        scope: "E. faecalis frecuentemente sensible; E. faecium resistente. Imipenem/cilastatina no se recomienda para meningitis.",
+        url: "https://cima.aemps.es/cima/dochtml/ft/71285/FichaTecnica_71285.html",
+      }),
+      "dailymed-imipenem": Object.freeze({
+        id: "dailymed-imipenem",
+        title: "DailyMed · PRIMAXIN IV (imipenem/cilastatina)",
+        version: "Ficha estadounidense · apartado 12.4",
+        registeredAt: "2026-09-19",
+        scope: "Actividad in vitro frente a Listeria; eficacia clínica no establecida en ensayos adecuados. No usar como recomendación de tratamiento ni extrapolar indicaciones de EE. UU.",
+        url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=f41d8abd-7792-4918-1b93-bd83ea01955e",
+      }),
+      "aemps-ciprofloxacin": Object.freeze({
+        id: "aemps-ciprofloxacin",
+        title: "AEMPS CIMA · Ciprofloxacino Ratio 250 mg",
+        version: "Ficha técnica consultada · apartados 4.1–4.5 y 5.1",
+        registeredAt: "2026-09-19",
+        scope: "Espectro, eficacia insuficiente frente a estreptococos, resistencias adquiridas, foco urinario, función renal e interacción con tizanidina. Sin extrapolar dosis.",
+        url: "https://cima.aemps.es/cima/dochtml/ft/67095/FT_67095.html",
+      }),
+      "aemps-levofloxacin": Object.freeze({
+        id: "aemps-levofloxacin",
+        title: "AEMPS CIMA · Levofloxacino cinfa 500 mg",
+        version: "Ficha técnica consultada · apartados 4.1–4.5 y 5.1",
+        registeredAt: "2026-09-19",
+        scope: "Espectro respiratorio y urinario, actividad condicionada por AST, restricciones en NAC y necesidad de ajuste renal. Sin incorporar pautas posológicas.",
+        url: "https://cima.aemps.es/cima/dochtml/ft/75614/FT_75614.html",
+      }),
+      "aemps-moxifloxacin": Object.freeze({
+        id: "aemps-moxifloxacin",
+        title: "AEMPS CIMA · Moxifloxacino Sandoz 400 mg",
+        version: "Ficha técnica oral consultada · apartados 4.1–4.5 y 5.1–5.2",
+        registeredAt: "2026-09-19",
+        scope: "Espectro respiratorio, ausencia de actividad anti-Pseudomonas, anaerobios variables, QT y ausencia de indicación urinaria. No extrapolar indicaciones entre presentaciones oral e IV.",
+        url: "https://cima.aemps.es/cima/dochtml/ft/74573/FichaTecnica_74573.html",
+      }),
+      "aemps-fluoroquinolonas": Object.freeze({
+        id: "aemps-fluoroquinolonas",
+        title: "AEMPS · Fluoroquinolonas: restricciones de uso",
+        version: "Nota de seguridad MUH (FV), 07/2023 · 23-10-2023",
+        registeredAt: "2026-09-19",
+        scope: "Uso restringido, reacción grave previa, daños tendinosos/neurológicos y factores de riesgo. Beneficio-riesgo individual; no selección automática por espectro.",
+        url: "https://www.aemps.gob.es/informa/fluoroquinolonas-de-administracion-sistemica-o-inhalada-recordatorio-sobre-las-restricciones-de-uso/",
+      }),
+      "eucast-2026-quinolones": Object.freeze({
+        id: "eucast-2026-quinolones",
+        title: "EUCAST · Clinical Breakpoint Tables",
+        version: "16.1 · 24-06-2026",
+        registeredAt: "2026-09-19",
+        scope: "Quinolonas: límites por foco en Enterococcus (p. 41), estreptococos y evidencia insuficiente para moxifloxacino en meningitis por Listeria (p. 90). El atlas no reproduce puntos de corte ni usa sus símbolos como categorías S/I/R.",
+        url: "https://www.eucast.org/fileadmin/eucast/pdf/breakpoints/v_16.1_Breakpoint_Tables.pdf",
       }),
     });
 
@@ -1045,6 +1458,8 @@
             errors.push(`Cobertura ${row.id}: falta la columna ${targetId}.`);
           } else if (!validLevels.has(row.values[targetId])) {
             errors.push(`Cobertura ${row.id}/${targetId}: nivel inválido (${row.values[targetId]}).`);
+          } else if (row.values[targetId] === "unknown" && !row.notes[targetId]?.trim()) {
+            errors.push(`Cobertura ${row.id}/${targetId}: la incertidumbre requiere una nota explicativa.`);
           }
         }
         for (const targetId of rowTargets) {
@@ -1072,6 +1487,9 @@
       for (const rule of SCENARIO_RULES) {
         if (!Number.isInteger(rule.priority)) {
           errors.push(`Regla ${rule.id}: prioridad no entera.`);
+        }
+        if (!rule.when.focus) {
+          errors.push(`Regla ${rule.id}: debe declarar los focos a los que se aplica.`);
         }
       }
 
@@ -1101,6 +1519,12 @@
       for (const input of AUDITED_SCENARIOS) {
         if (!isAuditedScenario(input) || !resolveScenario(input)?.ruleId) {
           errors.push(`Ruta auditada inválida: ${input.germ}/${input.focus}/${input.severity}.`);
+        }
+        if (!resolveScenario(input)?.followUpItems.length) {
+          errors.push(`Ruta sin seguimiento: ${input.germ}/${input.focus}/${input.severity}.`);
+        }
+        if (input.focus === "cistitis" && input.severity !== "estable") {
+          errors.push(`La cistitis baja no debe ofrecerse como infección invasiva o crítica: ${input.germ}.`);
         }
       }
 
@@ -1167,6 +1591,31 @@
     return Object.freeze({ validateData, assertDataIsValid });
   })();
 
+  // src/navigation.js
+  __modules["navigation"] = (() => {
+    const { ANTIBIOTICS, MECHANISMS, ORGANISMS } = __modules["catalog"];
+    const { isAuditedScenario } = __modules["rules"];
+    // Una ruta ausente permite la vista inicial; una ruta solicitada e inválida no.
+    function readSharedScenario(params) {
+      const dimensions = ["germ", "focus", "severity"];
+      if (!dimensions.some((key) => params.has(key))) return { status: "absent", input: null };
+      const input = Object.fromEntries(dimensions.map((key) => [key, params.get(key)]));
+      const complete = dimensions.every((key) => params.getAll(key).length === 1);
+      // La antigua ruta conjunta solo tenía una salida específica: Listeria en SNC.
+      if (complete && input.germ === "enterolisteria" && input.focus === "snc") input.germ = "listeria";
+      const query = new URLSearchParams([...params].filter(([key]) => dimensions.includes(key))).toString();
+      return { status: complete && isAuditedScenario(input) ? "valid" : "unavailable", input, query };
+    }
+
+    function findDetailItem(type, id) {
+      const collections = { organism: ORGANISMS, antibiotic: ANTIBIOTICS, mechanism: MECHANISMS };
+      if (!Object.hasOwn(collections, type)) return null;
+      return collections[type].find((item) => item.id === id) ?? null;
+    }
+
+    return Object.freeze({ readSharedScenario, findDetailItem });
+  })();
+
   // src/app.js
   __modules["app"] = (() => {
     const {
@@ -1179,6 +1628,8 @@
       SECTIONS,
     } = __modules["catalog"];
     const {
+      FOCUS_OPTIONS,
+      GERM_OPTIONS,
       SEVERITY_OPTIONS,
       getAuditedFocusOptions,
       getAuditedGermOptions,
@@ -1196,6 +1647,7 @@
     } = __modules["selectors"];
     const { SOURCES, getSources } = __modules["sources"];
     const { assertDataIsValid } = __modules["validate"];
+    const { findDetailItem, readSharedScenario } = __modules["navigation"];
     const MATRIX = buildMatrix();
     const DEFAULT_SCENARIO = Object.freeze({ germ: "blee", focus: "bacteriemia", severity: "invasiva" });
     const DEFAULT_SCANNER = "ceftriaxone";
@@ -1207,6 +1659,7 @@
       organismFilter: "all",
       scannerDrug: DEFAULT_SCANNER,
       ...DEFAULT_SCENARIO,
+      unavailableScenario: null,
       detail: null,
     };
 
@@ -1241,6 +1694,22 @@
     }
 
     function bindEvents() {
+      document.querySelector(".skip-link").addEventListener("click", (event) => {
+        event.preventDefault();
+        const main = document.querySelector("#main-content");
+        main.focus({ preventScroll: true });
+        main.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
+      });
+
+      document.querySelector("#scenario-reset").addEventListener("click", () => {
+        state.unavailableScenario = null;
+        Object.assign(state, DEFAULT_SCENARIO);
+        renderSelectorOptions();
+        renderScenario();
+        syncUrl();
+        document.querySelector("#germ-select").focus();
+      });
+
       document.querySelector("#global-search").addEventListener("input", (event) => {
         state.query = event.target.value;
         renderCatalogs();
@@ -1252,8 +1721,18 @@
         state.organismFilter = button.dataset.filter;
         document
           .querySelectorAll("#organism-filters button")
-          .forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+          .forEach((candidate) => {
+            candidate.classList.toggle("active", candidate === button);
+            candidate.setAttribute("aria-pressed", String(candidate === button));
+          });
         renderCatalogs();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        const editing = event.target.closest("input, textarea, select, [contenteditable]");
+        if (event.key !== "/" || editing || event.ctrlKey || event.metaKey || event.altKey || document.querySelector("#detail-dialog").open) return;
+        event.preventDefault();
+        document.querySelector("#global-search").focus();
       });
 
       document.querySelector("#theme-button").addEventListener("click", () => {
@@ -1308,6 +1787,7 @@
       });
 
       window.addEventListener("hashchange", () => {
+        if (window.location.hash === "#main-content") return;
         resetShareableState();
         hydrateStateFromHash();
         renderNavigation();
@@ -1321,7 +1801,7 @@
 
     function renderNavigation() {
       const navigation = document.querySelector("#section-navigation");
-      navigation.replaceChildren(
+      if (!navigation.childElementCount) navigation.append(
         ...SECTIONS.map((section, index) => {
           const button = element("button", {
             className: `nav-btn${section.id === state.activeSection ? " active" : ""}`,
@@ -1340,11 +1820,17 @@
           return button;
         }),
       );
+      for (const button of navigation.querySelectorAll(".nav-btn")) {
+        const active = button.getAttribute("aria-controls") === state.activeSection;
+        button.classList.toggle("active", active);
+        if (active) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      }
       centerActiveNavigationItem(navigation);
     }
 
     function centerActiveNavigationItem(navigation) {
-      if (!window.matchMedia("(max-width: 900px)").matches) return;
+      if (navigation.scrollWidth <= navigation.clientWidth) return;
       const activeButton = navigation.querySelector(".nav-btn.active");
       if (!activeButton) return;
       window.requestAnimationFrame(() => {
@@ -1392,6 +1878,16 @@
     }
 
     function renderSelectorOptions() {
+      const dimensions = [["germ", GERM_OPTIONS], ["focus", FOCUS_OPTIONS], ["severity", SEVERITY_OPTIONS]];
+      for (const [dimension, options] of dimensions) {
+        const select = document.querySelector(`#${dimension}-select`);
+        select.disabled = Boolean(state.unavailableScenario);
+        if (state.unavailableScenario) {
+          const requested = state.unavailableScenario[dimension];
+          fillSelect(select, [{ id: requested ?? "", label: optionLabel(options, requested) || "No indicado" }], requested ?? "");
+        }
+      }
+      if (state.unavailableScenario) return;
       const { germs, focuses, severities } = ensureSelectorState();
       fillSelect(document.querySelector("#germ-select"), germs, state.germ);
       fillSelect(document.querySelector("#focus-select"), focuses, state.focus);
@@ -1423,8 +1919,8 @@
             className: `scanner-cell is-${cell.level}`,
             attrs: {
               role: "listitem",
-              title: `${target.label}: ${coverageTitle(cell.level)}`,
-              "aria-label": `${target.label}: ${coverageTitle(cell.level)}`,
+              title: `${target.label}: ${coverageTitle(cell.level)}. ${cell.note}`,
+              "aria-label": `${target.label}: ${coverageTitle(cell.level)}. ${cell.note}`,
             },
           });
           item.append(
@@ -1441,6 +1937,8 @@
         element("strong", { text: "Trampa: " }),
         document.createTextNode(antibiotic?.trap ?? "Revisar la ficha y el protocolo local."),
       );
+      const notes = row.cells.map(({ note }) => note).filter(Boolean);
+      if (notes.length) summary.append(document.createTextNode(` ${notes.join(" ")}`));
       document.querySelector("#scanner-open").disabled = !antibiotic;
     }
 
@@ -1505,6 +2003,7 @@
           ["Hueco", isOrganism ? item.gap : item.misses.slice(0, 3).join(" · ")],
           ["Trampa", item.trap],
         ]),
+        renderCardLink(),
       );
       card.addEventListener("click", () => openDetail(item, type));
       return card;
@@ -1524,9 +2023,22 @@
           ["Evitar", mechanism.avoid],
           ["Micro", mechanism.micro],
         ]),
+        renderCardLink(),
       );
       card.addEventListener("click", () => openDetail(mechanism, "mechanism"));
       return card;
+    }
+
+    function renderCardLink() {
+      const link = element("span", { className: "card-link", attrs: { "aria-hidden": "true" } });
+      const arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      arrow.setAttribute("viewBox", "0 0 24 24");
+      arrow.setAttribute("fill", "none");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M6 18 18 6M6 6h12v12");
+      arrow.append(path);
+      link.append(document.createTextNode("Consultar ficha"), arrow);
+      return link;
     }
 
     function renderCardTop(item, badge, visualType) {
@@ -1603,6 +2115,7 @@
           infoListBlock("No cubre / no elegir", item.misses),
           infoBlock("Trampa", item.trap),
         );
+        if (item.precautions?.length) blocks.push(infoListBlock("Precauciones de la familia", item.precautions));
       }
 
       const sourcesBlock = element("div", { className: "info-block" });
@@ -1638,11 +2151,6 @@
         return;
       }
       openDetail(item, state.detail.type, { updateUrl: false });
-    }
-
-    function findDetailItem(type, id) {
-      const collections = { organism: ORGANISMS, antibiotic: ANTIBIOTICS, mechanism: MECHANISMS };
-      return collections[type]?.find((item) => item.id === id) ?? null;
     }
 
     function infoBlock(title, text) {
@@ -1699,7 +2207,7 @@
             element("span", {
               className: `cov ${cell.level}`,
               text: cell.symbol,
-              attrs: { title: coverageTitle(cell.level), "aria-label": coverageTitle(cell.level) },
+              attrs: { title: `${coverageTitle(cell.level)}. ${cell.note}`, "aria-label": `${coverageTitle(cell.level)}. ${cell.note}` },
             }),
           );
           tableRow.append(tableCell);
@@ -1707,13 +2215,39 @@
         bodyRows.push(tableRow);
       }
       document.querySelector("#matrix-body").replaceChildren(...bodyRows);
+      document.querySelector("#matrix-caveats").replaceChildren(
+        ...MATRIX.rows.filter((row) => row.cells.some(({ note }) => note)).map((row) =>
+          element("p", { text: `${row.label}: ${row.cells.map(({ note }) => note).filter(Boolean).join(" ")}` }),
+        ),
+      );
     }
 
     function coverageTitle(level) {
+      if (level === "unknown") return "Cobertura clínica no establecida";
       return level === "yes" ? "Cubre" : level === "maybe" ? "Variable o no de elección" : "No cubre";
     }
 
     function renderScenario() {
+      const unavailable = state.unavailableScenario;
+      document.querySelector("#scenario-guidance").hidden = Boolean(unavailable);
+      document.querySelector("#scenario-reset").hidden = !unavailable;
+      setText("route-status-title", unavailable ? "Ruta no disponible" : "Escenario seleccionado");
+      if (unavailable) {
+        const requested = [
+          optionLabel(GERM_OPTIONS, unavailable.germ) || "Germen no indicado",
+          optionLabel(FOCUS_OPTIONS, unavailable.focus) || "Foco no indicado",
+          optionLabel(SEVERITY_OPTIONS, unavailable.severity) || "Gravedad no indicada",
+        ].join(" · ");
+        setText("scenario-headline", "Ruta no disponible");
+        setText("severity-pill", optionLabel(SEVERITY_OPTIONS, unavailable.severity) || "Sin gravedad");
+        setText("scenario-scope", "Sin recomendación");
+        setText("route-summary", `Solicitud: ${requested}.`);
+        setText("scenario-alert", "El enlace contiene una combinación no disponible, incompleta o ambigua. No se ha sustituido por otra ruta. Elige otra ruta para continuar.");
+        for (const id of ["scenario-do", "scenario-avoid", "scenario-micro", "scenario-follow-up", "scenario-sources"]) {
+          document.querySelector(`#${id}`).replaceChildren();
+        }
+        return;
+      }
       const input = { focus: state.focus, germ: state.germ, severity: state.severity };
       if (!isAuditedScenario(input)) throw new Error("El selector intentó mostrar una ruta no auditada.");
       const scenario = resolveScenario(input);
@@ -1724,11 +2258,12 @@
       setText("scenario-headline", scenario.headline);
       setText("severity-pill", optionLabel(SEVERITY_OPTIONS, state.severity));
       setText("scenario-alert", scenario.alert);
-      setText("scenario-scope", "Ruta auditada");
-      setText("route-summary", `Regla ${scenario.ruleId} · ${optionLabel(getAuditedFocusOptions(state.germ), state.focus)}.`);
+      setText("scenario-scope", "Orientación por foco");
+      setText("route-summary", `${optionLabel(GERM_OPTIONS, state.germ)} · ${optionLabel(FOCUS_OPTIONS, state.focus)}.`);
       renderTextList("scenario-do", scenario.doItems);
       renderTextList("scenario-avoid", scenario.avoidItems);
       renderTextList("scenario-micro", scenario.microItems);
+      renderTextList("scenario-follow-up", scenario.followUpItems);
       renderSourceList(document.querySelector("#scenario-sources"), scenario.sourceIds);
     }
 
@@ -1738,11 +2273,16 @@
           const card = element("article", { className: "case-card" });
           const result = element("div", { className: "case-result" });
           result.append(element("strong", { text: "Lectura:" }), document.createTextNode(` ${clinicalCase.answer}`));
+          const sources = element("details", { className: "source-details" });
+          const sourceList = element("ul", { className: "source-list" });
+          renderSourceList(sourceList, clinicalCase.sourceIds);
+          sources.append(element("summary", { text: "Fuentes de este caso" }), sourceList);
           card.append(
             element("span", { className: "case-index", text: String(index + 1).padStart(2, "0") }),
             element("h3", { text: clinicalCase.title }),
             element("p", { text: clinicalCase.setup }),
             result,
+            sources,
           );
           return card;
         }),
@@ -1793,12 +2333,11 @@
 
     function renderThemeButton() {
       setText("theme-label", state.theme === "light" ? "Oscuro" : "Claro");
-      setText("theme-symbol", state.theme === "light" ? "◐" : "☼");
       document.querySelector("#theme-button").setAttribute(
         "aria-label",
         state.theme === "light" ? "Activar tema oscuro" : "Activar tema claro",
       );
-      document.querySelector('meta[name="theme-color"]').content = state.theme === "light" ? "#f2f5f7" : "#0a111c";
+      document.querySelector('meta[name="theme-color"]').content = state.theme === "light" ? "#ffffff" : "#111113";
     }
 
     function hydrateStateFromHash() {
@@ -1806,15 +2345,13 @@
       const view = params.get("view");
       if (SECTIONS.some(({ id }) => id === view)) state.activeSection = view;
 
-      const scannerDrug = params.get("scanner");
+      // El antiguo enlace a la fila conjunta abre ahora la fila explícita de meropenem.
+      const scannerDrug = params.get("scanner") === "mero-imi" ? "meropenem" : params.get("scanner");
       if (MATRIX.rows.some(({ id }) => id === scannerDrug)) state.scannerDrug = scannerDrug;
 
-      const scenario = {
-        germ: params.get("germ"),
-        focus: params.get("focus"),
-        severity: params.get("severity"),
-      };
-      if (isAuditedScenario(scenario)) Object.assign(state, scenario);
+      const scenario = readSharedScenario(params);
+      if (scenario.status === "valid") Object.assign(state, scenario.input);
+      state.unavailableScenario = scenario.status === "unavailable" ? { ...scenario.input, query: scenario.query } : null;
 
       const detailValue = params.get("detail");
       if (detailValue) {
@@ -1827,6 +2364,7 @@
       state.activeSection = "atlas";
       state.scannerDrug = DEFAULT_SCANNER;
       Object.assign(state, DEFAULT_SCENARIO);
+      state.unavailableScenario = null;
       state.detail = null;
     }
 
@@ -1834,7 +2372,9 @@
       const params = new URLSearchParams();
       if (state.activeSection !== "atlas") params.set("view", state.activeSection);
       if (state.scannerDrug !== DEFAULT_SCANNER) params.set("scanner", state.scannerDrug);
-      if (state.activeSection === "wizard") {
+      if (state.unavailableScenario) {
+        for (const [key, value] of new URLSearchParams(state.unavailableScenario.query)) params.append(key, value);
+      } else if (state.activeSection === "wizard") {
         params.set("germ", state.germ);
         params.set("focus", state.focus);
         params.set("severity", state.severity);

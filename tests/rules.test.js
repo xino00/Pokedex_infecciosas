@@ -27,7 +27,7 @@ test("todas las combinaciones del selector producen una salida explícita", () =
       }
     }
   }
-  assert.equal(combinations, 252);
+  assert.equal(combinations, FOCUS_OPTIONS.length * GERM_OPTIONS.length * SEVERITY_OPTIONS.length);
 });
 
 test("la gravedad modifica de forma visible el resultado", () => {
@@ -63,7 +63,7 @@ test("el selector declara cuándo solo existe orientación por germen", () => {
 
 test("la interfaz solo ofrece rutas con regla clínica específica", () => {
   assert.ok(AUDITED_SCENARIOS.length > 0);
-  assert.ok(AUDITED_SCENARIOS.length < 252);
+  assert.ok(AUDITED_SCENARIOS.length < FOCUS_OPTIONS.length * GERM_OPTIONS.length * SEVERITY_OPTIONS.length);
   assert.ok(AUDITED_SCENARIOS.every((input) => isAuditedScenario(input)));
   assert.ok(AUDITED_SCENARIOS.every((input) => resolveScenario(input)?.scope === "specific"));
   assert.equal(
@@ -73,10 +73,10 @@ test("la interfaz solo ofrece rutas con regla clínica específica", () => {
 });
 
 test("los desplegables auditados se derivan en cascada", () => {
-  assert.deepEqual(getAuditedGermOptions().map(({ id }) => id), ["blee", "sarm", "enterolisteria"]);
-  assert.deepEqual(getAuditedFocusOptions("sarm").map(({ id }) => id), ["resp"]);
+  assert.deepEqual(getAuditedGermOptions().map(({ id }) => id), ["blee", "ampc", "pseudo", "sarm", "sasm", "enterococcus", "listeria"]);
+  assert.deepEqual(getAuditedFocusOptions("sarm").map(({ id }) => id), ["resp", "bacteriemia", "endocarditis", "piel"]);
   assert.deepEqual(
-    getAuditedSeverityOptions("enterolisteria", "snc").map(({ id }) => id),
+    getAuditedSeverityOptions("listeria", "snc").map(({ id }) => id),
     ["estable", "invasiva", "critico"],
   );
 });

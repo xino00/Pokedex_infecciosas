@@ -1,5 +1,8 @@
+import { MBL_GUIDANCE, QUINOLONE_PRECAUTIONS, STENO_GUIDANCE } from "./clinical-guidance.js";
+
 const LOCAL_SOURCE = ["local-proa-fjd"];
 const AMR_SOURCES = ["local-proa-fjd", "idsa-amr-2024"];
+const QUINOLONE_SOURCES = ["aemps-fluoroquinolonas", "eucast-2026-quinolones"];
 
 export const SECTIONS = Object.freeze([
   { id: "atlas", label: "Atlas bacteriano", icon: "🧫" },
@@ -217,12 +220,11 @@ const organismData = [
     tags: ["Colonización", "L1/L2"],
     syndromes:
       "Colonización respiratoria frecuente; infección real en críticos, inmunodeprimidos, catéter o neumonía compatible.",
-    cover:
-      "Solo si infección real + AST + PROA. Si moderada-grave: dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam.",
+    cover: STENO_GUIDANCE.doItems.join(" "),
     gap: "Carbapenémicos inútiles por L1; muchas cefalosporinas fallan por L2.",
-    trap: "Primero distinguir infección de colonización. No usar ceftazidima como tratamiento.",
+    trap: STENO_GUIDANCE.microItems.join(" "),
     search: "stenotrophomonas maltophilia infeccion real ast proa tmp smx minociclina levofloxacino cefiderocol ceftazidima",
-    sourceIds: AMR_SOURCES,
+    sourceIds: STENO_GUIDANCE.sourceIds,
   },
   {
     id: "bacteroides",
@@ -272,17 +274,47 @@ const antibioticData = [
   { id: "cefepime", dex: "C005", group: "amber", name: "Cefepime", family: "Cefalosporina 4ª", icon: "💊", type: "AmpC/Pseudomonas", covers: ["AmpC si CMI favorable", "Pseudomonas si sensible", "Enterobacterales no BLEE"], misses: ["BLEE dirigida", "Anaerobios", "Enterococcus", "Listeria", "SARM"], trap: "Ajuste renal obligatorio: neurotoxicidad si se olvida.", search: "cefepime ampc pseudomonas blee neurotoxicidad" },
   { id: "piptazo", dex: "P001", group: "green", name: "Piperacilina-tazobactam", family: "Penicilina antipseudomónica + inhibidor", icon: "💊", type: "Amplio con anaerobios", covers: ["Pseudomonas si sensible", "Anaerobios", "Enterobacterales no BLEE", "SASM", "E. faecalis sensible"], misses: ["SARM", "E. faecium resistente", "Carbapenemasas", "BLEE grave fiable"], trap: "En BLEE extraurinaria grave, no usar como dirigida aunque parezca sensible.", search: "piperacilina tazobactam pip tazo pseudomonas anaerobios blee" },
   { id: "ertapenem", dex: "K001", group: "blue", name: "Ertapenem", family: "Carbapenémico grupo 1", icon: "💊", type: "BLEE estable", covers: ["Enterobacterales BLEE", "Anaerobios", "muchos Gram+ comunitarios"], misses: ["Acinetobacter", "Pseudomonas", "Enterococcus"], trap: "APE: Acinetobacter, Pseudomonas, Enterococcus quedan fuera.", search: "ertapenem blee ape acinetobacter pseudomonas enterococcus" },
-  { id: "mero-imi", dex: "K002", group: "red", name: "Meropenem / imipenem", family: "Carbapenémico antipseudomónico", icon: "💊", type: "UCI/MDR", covers: ["BLEE", "AmpC", "Anaerobios", "Pseudomonas si sensible"], misses: ["SARM", "Stenotrophomonas", "Atípicos", "Enterococcus resistente"], trap: "No gastar carbapenémico si el problema es colonización o cistitis baja con opción oral activa.", search: "meropenem imipenem carbapenemico blee ampc pseudomonas anaerobios" },
+  { id: "mero-imi", dex: "K002", group: "red", name: "Meropenem / imipenem: diferencias", family: "Carbapenémicos antipseudomónicos", icon: "💊", type: "Espectro y foco", covers: ["BLEE y AmpC según AST", "Anaerobios", "Pseudomonas si sensible", "Meropenem: actividad frente a Listeria; E. faecalis con sensibilidad natural intermedia", "Imipenem: E. faecalis sensible; actividad in vitro frente a Listeria sin eficacia clínica establecida"], misses: ["SARM", "E. faecium resistente", "Stenotrophomonas", "Atípicos"], trap: "Imipenem/cilastatina no se recomienda para meningitis. La actividad microbiológica no convierte un fármaco en pauta de elección; revisar foco, AST y protocolo.", search: "meropenem imipenem carbapenemico blee ampc listeria enterococcus faecalis meningitis", sourceIds: ["local-proa-fjd", "aemps-meropenem", "aemps-imipenem", "dailymed-imipenem"] },
   { id: "aztreonam", dex: "M001", group: "amber", name: "Aztreonam", family: "Monobactámico", icon: "💊", type: "Solo GN aerobios", covers: ["Enterobacterales si sensible", "Pseudomonas si sensible"], misses: ["Gram positivos", "Anaerobios"], trap: "Comparte cadena lateral con ceftazidima: cuidado si alergia confirmada a ceftazidima.", search: "aztreonam monobactam alergia ceftazidima pseudomonas anaerobios" },
   { id: "anti-mrsa-ceph", dex: "C006", group: "blue", name: "Ceftarolina (ceftobiprol no intercambiable)", family: "Cefalosporina anti-SARM", icon: "💊", type: "Anti-SARM beta-lactámico", covers: ["SARM", "SASM", "Streptococcus", "neumococo resistente"], misses: ["Pseudomonas en ceftarolina", "BLEE/CRE/AmpC", "Enterococcus fiable"], trap: "Anti-SARM dirigido, no comodín MDR. No extrapolar ceftarolina y ceftobiprol como equivalentes.", search: "ceftarolina ceftobiprol no intercambiable sarm mrsa neumococo blee cre ampc" },
   { id: "caz-avi", dex: "N001", group: "red", name: "Ceftazidima-avibactam", family: "Nuevo BL/BLI", icon: "🧬", type: "KPC/OXA-48-like", covers: ["KPC", "OXA-48-like", "algunas Pseudomonas DTR si sensible"], misses: ["MBL en monoterapia", "Gram+ y anaerobios relevantes"], trap: "MBL: combinar con aztreonam o elegir otra estrategia según disponibilidad/AST.", search: "ceftazidima avibactam caz avi kpc oxa48 mbl aztreonam", sourceIds: AMR_SOURCES },
   { id: "ceftolo-tazo", dex: "N002", group: "green", name: "Ceftolozano-tazobactam", family: "Nuevo BL/BLI", icon: "🧬", type: "Pseudomonas DTR", covers: ["Pseudomonas MDR/DTR si sensible", "algunas BLEE pero no como referencia"], misses: ["KPC", "OXA-48", "MBL", "Anaerobios sin metronidazol"], trap: "Especialista en Pseudomonas; no lo uses como carbapenemasa-killer.", search: "ceftolozano tazobactam pseudomonas dtr blee kpc", sourceIds: AMR_SOURCES },
   { id: "mvb-imi-rel", dex: "N003", group: "red", name: "Meropenem-vaborbactam / imipenem-relebactam", family: "Nuevo BL/BLI", icon: "🧬", type: "KPC", covers: ["KPC", "algunas Pseudomonas DTR si sensible en IMI-REL"], misses: ["MBL", "OXA-48-like en MVB/IMI-REL"], trap: "Si es OXA-48 o MBL, cambiar de mapa.", search: "meropenem vaborbactam imipenem relebactam kpc oxa48 mbl", sourceIds: AMR_SOURCES },
-  { id: "cefiderocol", dex: "N004", group: "red", name: "Cefiderocol", family: "Cefalosporina sideróforo", icon: "🧬", type: "MDR/XDR", covers: ["MBL como opción", "algunos no fermentadores MDR", "CRE según AST"], misses: ["Gram+", "Anaerobios"], trap: "Último recurso: siempre con AST, foco claro y PROA/Infecciosas.", search: "cefiderocol sideroforo mbl crab pseudomonas dtr", sourceIds: AMR_SOURCES },
+  { id: "cefiderocol", dex: "N004", group: "red", name: "Cefiderocol", family: "Cefalosporina sideróforo", icon: "🧬", type: "MDR/XDR", covers: ["MBL como opción", "algunos no fermentadores MDR", "CRE según AST", "Stenotrophomonas invasiva: preferido por IDSA 2026"], misses: ["Gram+", "Anaerobios"], trap: "Su papel depende del patógeno. En Stenotrophomonas invasiva, la preferencia IDSA 2026 tiene evidencia clínica limitada; confirmar AST, foco y PROA.", search: "cefiderocol sideroforo mbl crab pseudomonas dtr", sourceIds: [...AMR_SOURCES, "idsa-amr-2026"] },
   { id: "vanco", dex: "O001", group: "amber", name: "Vancomicina", family: "Glucopéptido", icon: "🛡️", type: "Gram+ resistentes", covers: ["SARM", "E. faecium sensible", "Gram+ resistentes"], misses: ["Gram negativos", "CDI luminal por vía IV"], trap: "IV no trata luz colónica; para CDI, vía oral/fidaxomicina según caso.", search: "vancomicina sarm c difficile oral iv niveles" },
   { id: "dapto", dex: "O002", group: "blue", name: "Daptomicina", family: "Lipopeptido", icon: "🛡️", type: "SARM/ERV no pulmonar", covers: ["Bacteriemia por Gram+", "endocarditis derecha", "osteoarticular", "IPPB"], misses: ["Neumonía"], trap: "Surfactante pulmonar la inactiva. CK y estatinas.", search: "daptomicina neumonia surfactante ck sarm erv" },
   { id: "tmp-smx", dex: "O003", group: "amber", name: "Cotrimoxazol", family: "TMP-SMX", icon: "🧪", type: "Oral útil / Steno", covers: ["Stenotrophomonas si sensible", "algunas ITU", "Pneumocystis"], misses: ["Pseudomonas", "anaerobios"], trap: "Vigilar potasio, función renal y hemograma.", search: "cotrimoxazol tmp smx stenotrophomonas potasio hemograma" },
   { id: "metro", dex: "O004", group: "blue", name: "Metronidazol", family: "Nitroimidazol", icon: "🧪", type: "Anaerobios", covers: ["Anaerobios", "protozoos seleccionados"], misses: ["Aerobios", "Gram+ y GN no anaerobios"], trap: "Ceftriaxona + metronidazol es una lógica; metronidazol solo rara vez lo es en foco polimicrobiano.", search: "metronidazol anaerobios abdomen ceftriaxona" },
+  {
+    id: "ciprofloxacin", dex: "Q001", group: "green", name: "Ciprofloxacino",
+    family: "Fluoroquinolona", icon: "💊", type: "Gram negativos / AST",
+    covers: ["Pseudomonas si AST activo y exposición adecuada", "Enterobacterales si sensibles", "Legionella"],
+    misses: ["Neumococo: eficacia insuficiente", "SARM: cobertura no fiable", "Anaerobios relevantes", "Listeria"],
+    trap: "No es una quinolona respiratoria para neumococo. En ITU, confirmar AST y foco; ajustar a función renal. Contraindicado con tizanidina.",
+    precautions: QUINOLONE_PRECAUTIONS,
+    search: "ciprofloxacino cipro ciprofloxacin quinolona quinolonas fluoroquinolonas pseudomonas itu prostatitis blee tizanidina",
+    sourceIds: ["aemps-ciprofloxacin", "idsa-amr-2026", ...QUINOLONE_SOURCES],
+  },
+  {
+    id: "levofloxacin", dex: "Q002", group: "amber", name: "Levofloxacino",
+    family: "Fluoroquinolona respiratoria", icon: "💊", type: "Respiratorio / urinario",
+    covers: ["Neumococo", "Atípicos respiratorios", "Enterobacterales si sensibles", "Pseudomonas solo con AST activo y exposición adecuada"],
+    misses: ["SARM: cobertura no fiable", "Anaerobios fiables", "Listeria: cobertura clínica no establecida"],
+    trap: "La etiqueta respiratoria no garantiza actividad frente a Pseudomonas. En NAC, reservar si las alternativas habituales no son apropiadas. Ajustar a función renal.",
+    precautions: QUINOLONE_PRECAUTIONS,
+    search: "levofloxacino levo levofloxacin quinolona quinolonas fluoroquinolonas neumococo atipicos legionella itu prostatitis blee",
+    sourceIds: ["aemps-levofloxacin", "idsa-amr-2026", ...QUINOLONE_SOURCES],
+  },
+  {
+    id: "moxifloxacin", dex: "Q003", group: "amber", name: "Moxifloxacino",
+    family: "Fluoroquinolona respiratoria", icon: "💊", type: "Respiratorio / sin Pseudomonas",
+    covers: ["Neumococo", "Atípicos respiratorios", "Algunos anaerobios; B. fragilis variable"],
+    misses: ["Pseudomonas", "ITU: no es una opción indicada", "SARM: cobertura no fiable", "Listeria: evidencia clínica insuficiente"],
+    trap: "En NAC, reservar si las alternativas habituales no son apropiadas o han fallado. Revisar QT; no combinar con fármacos que lo prolonguen. No requiere ajuste renal.",
+    precautions: QUINOLONE_PRECAUTIONS,
+    search: "moxifloxacino moxi moxifloxacin quinolona quinolonas fluoroquinolonas neumococo atipicos legionella anaerobios qt no itu",
+    sourceIds: ["aemps-moxifloxacin", ...QUINOLONE_SOURCES],
+  },
 ];
 
 export const ANTIBIOTICS = Object.freeze(
@@ -290,18 +322,18 @@ export const ANTIBIOTICS = Object.freeze(
 );
 
 const mechanismData = [
-  { id: "blee", name: "BLEE", icon: "🧬", group: "green", question: "¿Cistitis, pielonefritis/cUTI o infección invasiva?", use: "Cistitis baja: opción urinaria activa. Pielonefritis/cUTI: TMP-SMX/quinolona si sensible o carbapenémico. Extraurinaria grave: carbapenémico.", avoid: "Pip-tazo o cefepime como dirigidos en BLEE extraurinaria grave; nitrofurantoína/fosfomicina si pielonefritis.", micro: "AST completo, foco y posibilidad real de paso oral.", search: "blee esbl carbapenemico cistitis pielonefritis cuti cefepime piperacilina" },
+  { id: "blee", name: "BLEE", icon: "🧬", group: "green", question: "¿Cistitis, pielonefritis/cUTI o infección invasiva?", use: "Cistitis baja: opción urinaria activa. Pielonefritis/cUTI: TMP-SMX, ciprofloxacino o levofloxacino si sensible; carbapenémico según gravedad. Extraurinaria grave: carbapenémico.", avoid: "Pip-tazo o cefepime como dirigidos en BLEE extraurinaria grave; nitrofurantoína/fosfomicina si pielonefritis.", micro: "AST completo, foco y posibilidad real de paso oral.", search: "blee esbl carbapenemico cistitis pielonefritis cuti cefepime piperacilina" },
   { id: "ampc", name: "AmpC inducible", icon: "🧬", group: "amber", question: "¿E. cloacae complex, K. aerogenes o C. freundii?", use: "Cefepime si sensible y CMI favorable. Carbapenémico si grave, foco profundo, CMI problemática o sospecha de BLEE coproducida.", avoid: "Ceftriaxona/cefotaxima/ceftazidima en infección invasiva por especies de riesgo.", micro: "Identificar especie y CMI de cefepime; valorar BLEE coproducida.", search: "ampc enterobacter cloacae complex klebsiella aerogenes citrobacter freundii cefepime ceftriaxona" },
   { id: "kpc", name: "CRE-KPC", icon: "🧬", group: "red", question: "¿Carbapenemasa KPC confirmada?", use: "Meropenem-vaborbactam, ceftazidima-avibactam o imipenem-relebactam si sensible.", avoid: "Combinaciones antiguas con aminoglucósido/polimixina si ya hay beta-lactámico activo.", micro: "Tipado de carbapenemasa + AST de nuevos BL/BLI.", search: "kpc cre meropenem vaborbactam ceftazidima avibactam imipenem relebactam" },
   { id: "oxa48", name: "CRE OXA-48-like", icon: "🧬", group: "red", question: "¿OXA-48-like?", use: "Ceftazidima-avibactam como referencia si sensible. Cefiderocol como alternativa según caso.", avoid: "Meropenem-vaborbactam o imipenem-relebactam como si fueran KPC.", micro: "Tipado de carbapenemasa; confirmar actividad de CAZ-AVI.", search: "oxa48 oxa 48 ceftazidima avibactam cefiderocol" },
-  { id: "mbl", name: "MBL", icon: "🧬", group: "red", question: "¿NDM/VIM/IMP?", use: "Ceftazidima-avibactam + aztreonam o cefiderocol. Aztreonam-avibactam/cefepime-zidebactam según disponibilidad.", avoid: "CAZ-AVI en monoterapia. Vaborbactam/relebactam no inhiben MBL.", micro: "Probar combinación CAZ-AVI + aztreonam si el laboratorio puede.", search: "mbl ndm vim imp aztreonam avibactam cefiderocol" },
+  { id: "mbl", name: "MBL", icon: "🧬", group: "red", question: "¿Enterobacterales con NDM u otra MBL?", use: MBL_GUIDANCE.doItems.join(" "), avoid: MBL_GUIDANCE.avoidItems.join(" "), micro: MBL_GUIDANCE.microItems.join(" "), sourceIds: MBL_GUIDANCE.sourceIds, search: "mbl ndm vim imp aztreonam avibactam cefiderocol" },
   { id: "dtr-pa", germId: "dtr", name: "Pseudomonas DTR", icon: "🧬", group: "green", question: "¿Conserva algún beta-lactámico clásico?", use: "Si conserva BL clásico no carbapenémico, usarlo a dosis altas/perfusión extendida. Si DTR: ceftolo-tazo, CAZ-AVI, IMI-REL o cefiderocol según AST.", avoid: "Combinación de rutina si ya hay beta-lactámico activo confirmado.", micro: "AST para nuevos BL/BLI y cefiderocol.", search: "pseudomonas dtr ceftolozano tazobactam cefiderocol" },
   { id: "crab", name: "CRAB", icon: "🧬", group: "red", question: "¿Infección real o colonización?", use: "Sulbactam-durlobactam + meropenem/imipenem si disponible. Si no, ampicilina-sulbactam alta dosis + otro agente.", avoid: "Meropenem/imipenem solos. Tratar colonización respiratoria sin síndrome.", micro: "Confirmar sensibilidad y discutir combinación con PROA.", search: "crab acinetobacter sulbactam durlobactam colistina cefiderocol" },
-  { id: "steno", name: "Stenotrophomonas", icon: "🧬", group: "amber", question: "¿Colonización o infección real moderada-grave?", use: "Infección real + AST + PROA. Dos agentes entre cefiderocol, minociclina, TMP-SMX o levofloxacino; alternativa CAZ-AVI + aztreonam.", avoid: "Ceftazidima y carbapenémicos. Tratar hallazgo casual en vía aérea.", micro: "Solicitar sensibilidad a TMP-SMX, levofloxacino, minociclina y cefiderocol; discutir si hay que combinar.", search: "stenotrophomonas infeccion real ast proa tmp smx minociclina levofloxacino cefiderocol" },
+  { id: "steno", name: "Stenotrophomonas", icon: "🧬", group: "amber", question: "¿Colonización o infección invasiva?", use: STENO_GUIDANCE.doItems.join(" "), avoid: STENO_GUIDANCE.avoidItems.join(" "), micro: STENO_GUIDANCE.microItems.join(" "), sourceIds: STENO_GUIDANCE.sourceIds, search: "stenotrophomonas infeccion real ast proa tmp smx minociclina levofloxacino cefiderocol" },
 ];
 
 export const MECHANISMS = Object.freeze(
-  mechanismData.map((item) => Object.freeze({ ...item, sourceIds: ["idsa-amr-2024"] })),
+  mechanismData.map((item) => Object.freeze({ ...item, sourceIds: item.sourceIds ?? ["idsa-amr-2024"] })),
 );
 
 const caseData = [
@@ -309,9 +341,11 @@ const caseData = [
   { id: "ampc-ceftriaxone", title: "Enterobacter cloacae bacteriémico “S” a ceftriaxona", setup: "El informe inicial puede parecer cómodo, pero es una especie de riesgo AmpC.", answer: "Evita ceftriaxona en infección invasiva. Cefepime si CMI favorable o carbapenémico si gravedad/CMI/BLEE.", sourceIds: AMR_SOURCES },
   { id: "ertapenem-pseudomonas", title: "Ertapenem para neumonía nosocomial con riesgo de Pseudomonas", setup: "Ertapenem cubre BLEE y anaerobios, pero tiene hueco APE.", answer: "Error: no cubre Pseudomonas. Usa antipseudomónico real si el riesgo es clínicamente relevante." },
   { id: "steno-colonization", title: "Stenotrophomonas en esputo de EPOC estable", setup: "No fermentador en vía aérea crónica sin fiebre, sin infiltrado nuevo, sin deterioro claro.", answer: "Probable colonización. No escalar por cultivo aislado; tratar solo si síndrome infeccioso real.", sourceIds: AMR_SOURCES },
-  { id: "blee-branches", title: "BLEE no es una sola rama", setup: "El mismo antibiograma no significa lo mismo en cistitis baja, pielonefritis/cUTI o bacteriemia.", answer: "Cistitis baja: opción urinaria activa. Pielo/cUTI: TMP-SMX/quinolona si sensible o carbapenémico. Bacteriemia/foco extraurinario: carbapenémico; si crítico, meropenem/imipenem.", sourceIds: AMR_SOURCES },
+  { id: "blee-branches", title: "BLEE: el tratamiento depende del foco", setup: "La elección del antibiótico depende del foco de la infección, de la gravedad y del antibiograma.", answer: "En la cistitis, elegir un antibiótico activo y adecuado para la infección urinaria baja. En la pielonefritis o la infección urinaria complicada, valorar cotrimoxazol, ciprofloxacino o levofloxacino si la bacteria es sensible; un carbapenémico puede ser necesario si esas opciones no son adecuadas o el paciente está grave. En la bacteriemia y otras infecciones fuera del aparato urinario, se prefieren los carbapenémicos; en pacientes críticos, meropenem o imipenem-cilastatina.", sourceIds: ["local-proa-fjd", "idsa-amr-2026"] },
   { id: "gonococcus-pharynx", title: "Gonococo faríngeo tratado con cefixima", setup: "Cefixima puede aparecer como alternativa oral, pero faringe es un sitio de erradicación difícil.", answer: "Ceftriaxona si es posible. Si hubo cefixima o sospecha de fallo: test de curación 7-14 días; cultivo/AST y experto si persiste.", sourceIds: ["cdc-gonorrhea-2021"] },
   { id: "daptomycin-pneumonia", title: "Daptomicina para neumonía por SARM", setup: "Daptomicina es potente anti-SARM, pero no en pulmón.", answer: "Error de foco: se inactiva por surfactante. Considera linezolid/vancomicina según contexto y protocolo." },
+  { id: "ciprofloxacin-pneumococcus", title: "Ciprofloxacino para una NAC neumocócica", setup: "Que una quinolona tenga actividad frente a Pseudomonas no la convierte en una opción para neumococo.", answer: "Ciprofloxacino tiene eficacia insuficiente frente a estreptococos. Elegir el tratamiento por foco, patógeno y protocolo; no intercambiar quinolonas por pertenecer a la misma familia.", sourceIds: ["aemps-ciprofloxacin"] },
+  { id: "moxifloxacin-uti", title: "Moxifloxacino como sustituto en una ITU", setup: "Se intenta cambiar ciprofloxacino o levofloxacino por otra quinolona disponible.", answer: "Moxifloxacino no está indicado para ITU ni cubre Pseudomonas. Elegir una opción urinaria con sensibilidad confirmada; en cistitis no complicada, reservar fluoroquinolonas si no pueden usarse las alternativas habituales.", sourceIds: ["aemps-moxifloxacin", "aemps-fluoroquinolonas", "idsa-amr-2026"] },
 ];
 
 export const CASES = Object.freeze(

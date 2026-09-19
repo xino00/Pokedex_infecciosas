@@ -8,6 +8,8 @@ import {
   SECTIONS,
 } from "./catalog.js";
 import {
+  FOCUS_OPTIONS,
+  GERM_OPTIONS,
   SEVERITY_OPTIONS,
   getAuditedFocusOptions,
   getAuditedGermOptions,
@@ -25,6 +27,7 @@ import {
 } from "./selectors.js";
 import { SOURCES, getSources } from "./sources.js";
 import { assertDataIsValid } from "./validate.js";
+import { findDetailItem, readSharedScenario } from "./navigation.js";
 
 const MATRIX = buildMatrix();
 const DEFAULT_SCENARIO = Object.freeze({ germ: "blee", focus: "bacteriemia", severity: "invasiva" });
@@ -37,6 +40,7 @@ const state = {
   organismFilter: "all",
   scannerDrug: DEFAULT_SCANNER,
   ...DEFAULT_SCENARIO,
+  unavailableScenario: null,
   detail: null,
 };
 
@@ -71,6 +75,22 @@ function start() {
 }
 
 function bindEvents() {
+  document.querySelector(".skip-link").addEventListener("click", (event) => {
+    event.preventDefault();
+    const main = document.querySelector("#main-content");
+    main.focus({ preventScroll: true });
+    main.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  });
+
+  document.querySelector("#scenario-reset").addEventListener("click", () => {
+    state.unavailableScenario = null;
+    Object.assign(state, DEFAULT_SCENARIO);
+    renderSelectorOptions();
+    renderScenario();
+    syncUrl();
+    document.querySelector("#germ-select").focus();
+  });
+
   document.querySelector("#global-search").addEventListener("input", (event) => {
     state.query = event.target.value;
     renderCatalogs();
@@ -82,8 +102,18 @@ function bindEvents() {
     state.organismFilter = button.dataset.filter;
     document
       .querySelectorAll("#organism-filters button")
-      .forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+      .forEach((candidate) => {
+        candidate.classList.toggle("active", candidate === button);
+        candidate.setAttribute("aria-pressed", String(candidate === button));
+      });
     renderCatalogs();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const editing = event.target.closest("input, textarea, select, [contenteditable]");
+    if (event.key !== "/" || editing || event.ctrlKey || event.metaKey || event.altKey || document.querySelector("#detail-dialog").open) return;
+    event.preventDefault();
+    document.querySelector("#global-search").focus();
   });
 
   document.querySelector("#theme-button").addEventListener("click", () => {
@@ -138,6 +168,7 @@ function bindEvents() {
   });
 
   window.addEventListener("hashchange", () => {
+    if (window.location.hash === "#main-content") return;
     resetShareableState();
     hydrateStateFromHash();
     renderNavigation();
@@ -151,7 +182,7 @@ function bindEvents() {
 
 function renderNavigation() {
   const navigation = document.querySelector("#section-navigation");
-  navigation.replaceChildren(
+  if (!navigation.childElementCount) navigation.append(
     ...SECTIONS.map((section, index) => {
       const button = element("button", {
         className: `nav-btn${section.id === state.activeSection ? " active" : ""}`,
@@ -170,11 +201,17 @@ function renderNavigation() {
       return button;
     }),
   );
+  for (const button of navigation.querySelectorAll(".nav-btn")) {
+    const active = button.getAttribute("aria-controls") === state.activeSection;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  }
   centerActiveNavigationItem(navigation);
 }
 
 function centerActiveNavigationItem(navigation) {
-  if (!window.matchMedia("(max-width: 900px)").matches) return;
+  if (navigation.scrollWidth <= navigation.clientWidth) return;
   const activeButton = navigation.querySelector(".nav-btn.active");
   if (!activeButton) return;
   window.requestAnimationFrame(() => {
@@ -222,6 +259,16 @@ function ensureSelectorState() {
 }
 
 function renderSelectorOptions() {
+  const dimensions = [["germ", GERM_OPTIONS], ["focus", FOCUS_OPTIONS], ["severity", SEVERITY_OPTIONS]];
+  for (const [dimension, options] of dimensions) {
+    const select = document.querySelector(`#${dimension}-select`);
+    select.disabled = Boolean(state.unavailableScenario);
+    if (state.unavailableScenario) {
+      const requested = state.unavailableScenario[dimension];
+      fillSelect(select, [{ id: requested ?? "", label: optionLabel(options, requested) || "No indicado" }], requested ?? "");
+    }
+  }
+  if (state.unavailableScenario) return;
   const { germs, focuses, severities } = ensureSelectorState();
   fillSelect(document.querySelector("#germ-select"), germs, state.germ);
   fillSelect(document.querySelector("#focus-select"), focuses, state.focus);
@@ -253,8 +300,8 @@ function renderScanner() {
         className: `scanner-cell is-${cell.level}`,
         attrs: {
           role: "listitem",
-          title: `${target.label}: ${coverageTitle(cell.level)}`,
-          "aria-label": `${target.label}: ${coverageTitle(cell.level)}`,
+          title: `${target.label}: ${coverageTitle(cell.level)}. ${cell.note}`,
+          "aria-label": `${target.label}: ${coverageTitle(cell.level)}. ${cell.note}`,
         },
       });
       item.append(
@@ -271,6 +318,8 @@ function renderScanner() {
     element("strong", { text: "Trampa: " }),
     document.createTextNode(antibiotic?.trap ?? "Revisar la ficha y el protocolo local."),
   );
+  const notes = row.cells.map(({ note }) => note).filter(Boolean);
+  if (notes.length) summary.append(document.createTextNode(` ${notes.join(" ")}`));
   document.querySelector("#scanner-open").disabled = !antibiotic;
 }
 
@@ -335,6 +384,7 @@ function renderCatalogCard(item, type) {
       ["Hueco", isOrganism ? item.gap : item.misses.slice(0, 3).join(" · ")],
       ["Trampa", item.trap],
     ]),
+    renderCardLink(),
   );
   card.addEventListener("click", () => openDetail(item, type));
   return card;
@@ -354,9 +404,22 @@ function renderMechanismCard(mechanism) {
       ["Evitar", mechanism.avoid],
       ["Micro", mechanism.micro],
     ]),
+    renderCardLink(),
   );
   card.addEventListener("click", () => openDetail(mechanism, "mechanism"));
   return card;
+}
+
+function renderCardLink() {
+  const link = element("span", { className: "card-link", attrs: { "aria-hidden": "true" } });
+  const arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  arrow.setAttribute("viewBox", "0 0 24 24");
+  arrow.setAttribute("fill", "none");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M6 18 18 6M6 6h12v12");
+  arrow.append(path);
+  link.append(document.createTextNode("Consultar ficha"), arrow);
+  return link;
 }
 
 function renderCardTop(item, badge, visualType) {
@@ -433,6 +496,7 @@ function openDetail(item, type, { updateUrl = true } = {}) {
       infoListBlock("No cubre / no elegir", item.misses),
       infoBlock("Trampa", item.trap),
     );
+    if (item.precautions?.length) blocks.push(infoListBlock("Precauciones de la familia", item.precautions));
   }
 
   const sourcesBlock = element("div", { className: "info-block" });
@@ -468,11 +532,6 @@ function openDetailFromState() {
     return;
   }
   openDetail(item, state.detail.type, { updateUrl: false });
-}
-
-function findDetailItem(type, id) {
-  const collections = { organism: ORGANISMS, antibiotic: ANTIBIOTICS, mechanism: MECHANISMS };
-  return collections[type]?.find((item) => item.id === id) ?? null;
 }
 
 function infoBlock(title, text) {
@@ -529,7 +588,7 @@ function renderMatrix() {
         element("span", {
           className: `cov ${cell.level}`,
           text: cell.symbol,
-          attrs: { title: coverageTitle(cell.level), "aria-label": coverageTitle(cell.level) },
+          attrs: { title: `${coverageTitle(cell.level)}. ${cell.note}`, "aria-label": `${coverageTitle(cell.level)}. ${cell.note}` },
         }),
       );
       tableRow.append(tableCell);
@@ -537,13 +596,39 @@ function renderMatrix() {
     bodyRows.push(tableRow);
   }
   document.querySelector("#matrix-body").replaceChildren(...bodyRows);
+  document.querySelector("#matrix-caveats").replaceChildren(
+    ...MATRIX.rows.filter((row) => row.cells.some(({ note }) => note)).map((row) =>
+      element("p", { text: `${row.label}: ${row.cells.map(({ note }) => note).filter(Boolean).join(" ")}` }),
+    ),
+  );
 }
 
 function coverageTitle(level) {
+  if (level === "unknown") return "Cobertura clínica no establecida";
   return level === "yes" ? "Cubre" : level === "maybe" ? "Variable o no de elección" : "No cubre";
 }
 
 function renderScenario() {
+  const unavailable = state.unavailableScenario;
+  document.querySelector("#scenario-guidance").hidden = Boolean(unavailable);
+  document.querySelector("#scenario-reset").hidden = !unavailable;
+  setText("route-status-title", unavailable ? "Ruta no disponible" : "Escenario seleccionado");
+  if (unavailable) {
+    const requested = [
+      optionLabel(GERM_OPTIONS, unavailable.germ) || "Germen no indicado",
+      optionLabel(FOCUS_OPTIONS, unavailable.focus) || "Foco no indicado",
+      optionLabel(SEVERITY_OPTIONS, unavailable.severity) || "Gravedad no indicada",
+    ].join(" · ");
+    setText("scenario-headline", "Ruta no disponible");
+    setText("severity-pill", optionLabel(SEVERITY_OPTIONS, unavailable.severity) || "Sin gravedad");
+    setText("scenario-scope", "Sin recomendación");
+    setText("route-summary", `Solicitud: ${requested}.`);
+    setText("scenario-alert", "El enlace contiene una combinación no disponible, incompleta o ambigua. No se ha sustituido por otra ruta. Elige otra ruta para continuar.");
+    for (const id of ["scenario-do", "scenario-avoid", "scenario-micro", "scenario-follow-up", "scenario-sources"]) {
+      document.querySelector(`#${id}`).replaceChildren();
+    }
+    return;
+  }
   const input = { focus: state.focus, germ: state.germ, severity: state.severity };
   if (!isAuditedScenario(input)) throw new Error("El selector intentó mostrar una ruta no auditada.");
   const scenario = resolveScenario(input);
@@ -554,11 +639,12 @@ function renderScenario() {
   setText("scenario-headline", scenario.headline);
   setText("severity-pill", optionLabel(SEVERITY_OPTIONS, state.severity));
   setText("scenario-alert", scenario.alert);
-  setText("scenario-scope", "Ruta auditada");
-  setText("route-summary", `Regla ${scenario.ruleId} · ${optionLabel(getAuditedFocusOptions(state.germ), state.focus)}.`);
+  setText("scenario-scope", "Orientación por foco");
+  setText("route-summary", `${optionLabel(GERM_OPTIONS, state.germ)} · ${optionLabel(FOCUS_OPTIONS, state.focus)}.`);
   renderTextList("scenario-do", scenario.doItems);
   renderTextList("scenario-avoid", scenario.avoidItems);
   renderTextList("scenario-micro", scenario.microItems);
+  renderTextList("scenario-follow-up", scenario.followUpItems);
   renderSourceList(document.querySelector("#scenario-sources"), scenario.sourceIds);
 }
 
@@ -568,11 +654,16 @@ function renderCases() {
       const card = element("article", { className: "case-card" });
       const result = element("div", { className: "case-result" });
       result.append(element("strong", { text: "Lectura:" }), document.createTextNode(` ${clinicalCase.answer}`));
+      const sources = element("details", { className: "source-details" });
+      const sourceList = element("ul", { className: "source-list" });
+      renderSourceList(sourceList, clinicalCase.sourceIds);
+      sources.append(element("summary", { text: "Fuentes de este caso" }), sourceList);
       card.append(
         element("span", { className: "case-index", text: String(index + 1).padStart(2, "0") }),
         element("h3", { text: clinicalCase.title }),
         element("p", { text: clinicalCase.setup }),
         result,
+        sources,
       );
       return card;
     }),
@@ -623,12 +714,11 @@ function renderTextList(id, items) {
 
 function renderThemeButton() {
   setText("theme-label", state.theme === "light" ? "Oscuro" : "Claro");
-  setText("theme-symbol", state.theme === "light" ? "◐" : "☼");
   document.querySelector("#theme-button").setAttribute(
     "aria-label",
     state.theme === "light" ? "Activar tema oscuro" : "Activar tema claro",
   );
-  document.querySelector('meta[name="theme-color"]').content = state.theme === "light" ? "#f2f5f7" : "#0a111c";
+  document.querySelector('meta[name="theme-color"]').content = state.theme === "light" ? "#ffffff" : "#111113";
 }
 
 function hydrateStateFromHash() {
@@ -636,15 +726,13 @@ function hydrateStateFromHash() {
   const view = params.get("view");
   if (SECTIONS.some(({ id }) => id === view)) state.activeSection = view;
 
-  const scannerDrug = params.get("scanner");
+  // El antiguo enlace a la fila conjunta abre ahora la fila explícita de meropenem.
+  const scannerDrug = params.get("scanner") === "mero-imi" ? "meropenem" : params.get("scanner");
   if (MATRIX.rows.some(({ id }) => id === scannerDrug)) state.scannerDrug = scannerDrug;
 
-  const scenario = {
-    germ: params.get("germ"),
-    focus: params.get("focus"),
-    severity: params.get("severity"),
-  };
-  if (isAuditedScenario(scenario)) Object.assign(state, scenario);
+  const scenario = readSharedScenario(params);
+  if (scenario.status === "valid") Object.assign(state, scenario.input);
+  state.unavailableScenario = scenario.status === "unavailable" ? { ...scenario.input, query: scenario.query } : null;
 
   const detailValue = params.get("detail");
   if (detailValue) {
@@ -657,6 +745,7 @@ function resetShareableState() {
   state.activeSection = "atlas";
   state.scannerDrug = DEFAULT_SCANNER;
   Object.assign(state, DEFAULT_SCENARIO);
+  state.unavailableScenario = null;
   state.detail = null;
 }
 
@@ -664,7 +753,9 @@ function syncUrl() {
   const params = new URLSearchParams();
   if (state.activeSection !== "atlas") params.set("view", state.activeSection);
   if (state.scannerDrug !== DEFAULT_SCANNER) params.set("scanner", state.scannerDrug);
-  if (state.activeSection === "wizard") {
+  if (state.unavailableScenario) {
+    for (const [key, value] of new URLSearchParams(state.unavailableScenario.query)) params.append(key, value);
+  } else if (state.activeSection === "wizard") {
     params.set("germ", state.germ);
     params.set("focus", state.focus);
     params.set("severity", state.severity);
