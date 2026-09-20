@@ -10,6 +10,7 @@ const moduleFiles = Object.freeze([
   "src/coverage.js",
   "src/rules.js",
   "src/selectors.js",
+  "src/classification.js",
   "src/sources.js",
   "src/validate.js",
   "src/navigation.js",

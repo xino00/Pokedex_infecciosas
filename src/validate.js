@@ -13,6 +13,7 @@ import {
   resolveScenario,
 } from "./rules.js";
 import { SOURCES } from "./sources.js";
+import { CLASSIFICATION, CLASSIFICATION_NOTES } from "./classification.js";
 
 export function validateData() {
   const errors = [];
@@ -33,6 +34,17 @@ export function validateData() {
   checkUniqueIds(errors, "reglas contextuales", CONTEXT_RULES);
   checkUniqueIds(errors, "filas de cobertura", COVERAGE);
   checkUniqueIds(errors, "columnas de cobertura", COVERAGE_TARGETS);
+  const classificationRows = CLASSIFICATION.flatMap((group) => group.rows);
+  checkUniqueIds(errors, "grupos de clasificación", CLASSIFICATION);
+  checkUniqueIds(errors, "ramas de clasificación", classificationRows);
+  checkSourceReferences(errors, "clasificación", classificationRows, sourceIds);
+  checkSourceReferences(errors, "nota de clasificación", CLASSIFICATION_NOTES.map((note) => ({ ...note, id: note.title })), sourceIds);
+  const organismIds = new Set(ORGANISMS.map(({ id }) => id));
+  for (const row of classificationRows) {
+    for (const id of row.organismIds) {
+      if (!organismIds.has(id)) errors.push(`Clasificación ${row.id}: ficha inexistente (${id}).`);
+    }
+  }
 
   if (!AUDITED_SCENARIOS.length) {
     errors.push("No existe ninguna ruta clínica auditada para el selector.");
@@ -147,8 +159,9 @@ export function validateData() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(source.registeredAt)) {
       errors.push(`Fuente ${source.id}: registeredAt no usa YYYY-MM-DD.`);
     }
-    if (source.url && !source.url.startsWith("https://")) {
-      errors.push(`Fuente ${source.id}: la URL no usa HTTPS.`);
+    const bundledImage = /^assets\/[a-z0-9][a-z0-9-]*\.png$/.test(source.url ?? "");
+    if (source.url && !source.url.startsWith("https://") && !bundledImage) {
+      errors.push(`Fuente ${source.id}: debe usar HTTPS o una imagen PNG incluida en assets/.`);
     }
   }
 

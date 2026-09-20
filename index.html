@@ -28,7 +28,7 @@
           <div class="search-panel">
             <label class="search-box" for="global-search">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-              <span class="visually-hidden">Buscar en patógenos, fármacos y mecanismos</span>
+              <span class="visually-hidden">Buscar en patógenos, clasificación, fármacos y mecanismos</span>
               <input id="global-search" type="search" placeholder="Ceftriaxona, AmpC, Listeria…" autocomplete="off" aria-keyshortcuts="/" aria-describedby="search-status" />
               <kbd aria-hidden="true">/</kbd>
             </label>
@@ -47,8 +47,8 @@
       <header class="instrument-header">
         <div class="instrument-copy">
           <span class="eyebrow">Atlas visual de antimicrobianos</span>
-          <h1>Encuentra<br>el <span>hueco.</span></h1>
-          <p class="lead"><strong>Antes de prescribir.</strong> Compara espectro, abre la ficha y fuerza la pregunta incómoda: ¿qué patógeno importante se queda fuera?</p>
+          <h1>Bacterias y<br><span>antibióticos</span></h1>
+          <p class="lead">Consulta la clasificación bacteriana, compara el espectro de los antibióticos y revisa los principales mecanismos de resistencia.</p>
           <div class="header-actions">
             <button class="primary-action" type="button" data-go-section="matrix">Explorar la matriz <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
             <button class="text-action" type="button" data-go-section="wizard">Rutas clínicas <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></button>
@@ -113,6 +113,7 @@
             <span class="eyebrow">MAPA BACTERIANO</span>
             <h2>De morfología a hueco de cobertura</h2>
             <p>Abre una ficha para revisar síndrome, estrategia, resistencia intrínseca y trampa de guardia.</p>
+            <button class="quiet-action" type="button" data-go-section="classification">Consultar clasificación por Gram y morfología</button>
           </div>
           <div class="toolbar">
             <div id="organism-filters" class="segmented" aria-label="Filtrar atlas">
@@ -136,6 +137,38 @@
         </div>
         <div id="organism-grid" class="grid organism-grid"></div>
         <div id="organism-empty" class="empty" hidden>No hay bacterias que coincidan con la búsqueda.</div>
+      </section>
+
+      <section id="classification" class="section" aria-labelledby="classification-title">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Identificación bacteriana</span>
+            <h2 id="classification-title">Del Gram al microorganismo</h2>
+            <p>Explora la tabla por morfología, crecimiento y pruebas de identificación. Los enlaces abren las fichas relacionadas disponibles en el atlas.</p>
+          </div>
+        </div>
+        <div class="classification-tools">
+          <div class="field">
+            <label for="classification-search">Buscar microorganismo o prueba</label>
+            <input id="classification-search" type="search" placeholder="Coagulasa, Veillonella, lactosa…" autocomplete="off" aria-describedby="classification-status" />
+          </div>
+          <div class="field">
+            <label for="classification-group">Gram y morfología</label>
+            <select id="classification-group"></select>
+          </div>
+        </div>
+        <p id="classification-status" class="classification-status" role="status" aria-live="polite"></p>
+        <p class="classification-boundary"><strong>Identificación orientativa.</strong> La morfología y las pruebas bioquímicas no determinan por sí solas el tratamiento. Lee los matices de cada rama y confirma el antibiograma.</p>
+        <div id="classification-groups"></div>
+        <div id="classification-empty" class="empty" hidden>No hay ramas que coincidan. Prueba otro término o selecciona «Todos los grupos».</div>
+        <div id="classification-notes" class="classification-notes"></div>
+        <details class="source-details">
+          <summary>Imagen original y alcance de la adaptación</summary>
+          <div>
+            <p>La imagen aportada no identifica manual ni edición. Se conserva íntegra como referencia; los matices clínicos y los datos no corroborados se explican arriba.</p>
+            <p><a href="assets/clasificacion-bacteriana-original.png" target="_blank" rel="noreferrer">Abrir la imagen original</a></p>
+          </div>
+        </details>
       </section>
 
       <section id="antibiotics" class="section">

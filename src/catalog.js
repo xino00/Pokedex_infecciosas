@@ -6,6 +6,7 @@ const QUINOLONE_SOURCES = ["aemps-fluoroquinolonas", "eucast-2026-quinolones"];
 
 export const SECTIONS = Object.freeze([
   { id: "atlas", label: "Atlas bacteriano", icon: "🧫" },
+  { id: "classification", label: "Clasificación" },
   { id: "antibiotics", label: "Pokédex antibióticos", icon: "💊" },
   { id: "mechanisms", label: "Mecanismos MDR", icon: "🧬" },
   { id: "matrix", label: "Heatmap cobertura", icon: "▦" },

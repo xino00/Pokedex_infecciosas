@@ -28,6 +28,7 @@ import {
 import { SOURCES, getSources } from "./sources.js";
 import { assertDataIsValid } from "./validate.js";
 import { findDetailItem, readSharedScenario } from "./navigation.js";
+import { CLASSIFICATION, CLASSIFICATION_NOTES, filterClassification } from "./classification.js";
 
 const MATRIX = buildMatrix();
 const DEFAULT_SCENARIO = Object.freeze({ germ: "blee", focus: "bacteriemia", severity: "invasiva" });
@@ -38,6 +39,7 @@ const state = {
   theme: readStoredTheme(),
   query: "",
   organismFilter: "all",
+  classificationGroup: "all",
   scannerDrug: DEFAULT_SCANNER,
   ...DEFAULT_SCENARIO,
   unavailableScenario: null,
@@ -65,6 +67,7 @@ function start() {
   renderMatrix();
   renderCases();
   renderDeepContent();
+  renderClassificationControls();
   renderSourceList(document.querySelector("#source-list"), Object.keys(SOURCES), true);
   bindEvents();
   renderThemeButton();
@@ -91,9 +94,19 @@ function bindEvents() {
     document.querySelector("#germ-select").focus();
   });
 
-  document.querySelector("#global-search").addEventListener("input", (event) => {
-    state.query = event.target.value;
-    renderCatalogs();
+  for (const id of ["global-search", "classification-search"]) {
+    document.querySelector(`#${id}`).addEventListener("input", (event) => {
+      state.query = event.target.value;
+      for (const searchId of ["global-search", "classification-search"]) {
+        document.querySelector(`#${searchId}`).value = state.query;
+      }
+      renderCatalogs();
+    });
+  }
+
+  document.querySelector("#classification-group").addEventListener("change", (event) => {
+    state.classificationGroup = event.target.value;
+    renderClassification();
   });
 
   document.querySelector("#organism-filters").addEventListener("click", (event) => {
@@ -354,11 +367,86 @@ function renderCatalogs() {
   toggleEmpty("organism-empty", organisms.length);
   toggleEmpty("antibiotic-empty", antibiotics.length);
   toggleEmpty("mechanism-empty", mechanisms.length);
+  renderClassification();
 
   const status = document.querySelector("#search-status");
-  status.textContent = state.query.trim()
-    ? `${organisms.length} patógenos · ${antibiotics.length} fármacos · ${mechanisms.length} mecanismos`
-    : "";
+  status.replaceChildren();
+  if (state.query.trim()) {
+    status.append(document.createTextNode(`${organisms.length} patógenos · ${antibiotics.length} fármacos · ${mechanisms.length} mecanismos`));
+    const branches = filterClassification(state.query).reduce((total, group) => total + group.rows.length, 0);
+    if (branches) {
+      const button = element("button", {
+        className: "search-classification-link", text: `Ver clasificación (${branches} ${branches === 1 ? "rama" : "ramas"})`, attrs: { type: "button" },
+      });
+      button.addEventListener("click", () => {
+        state.classificationGroup = "all";
+        document.querySelector("#classification-group").value = "all";
+        renderClassification();
+        activateSection("classification");
+        document.querySelector("#classification-search").focus({ preventScroll: true });
+      });
+      status.append(button);
+    }
+  }
+}
+
+function renderClassificationControls() {
+  fillSelect(document.querySelector("#classification-group"), [
+    { id: "all", label: "Todos los grupos" },
+    ...CLASSIFICATION.map((group) => ({ id: group.id, label: group.title })),
+  ], state.classificationGroup);
+  document.querySelector("#classification-notes").replaceChildren(
+    ...CLASSIFICATION_NOTES.map((note) => {
+      const details = element("details", { className: "source-details" });
+      const body = element("div");
+      const sources = element("ul", { className: "source-list" });
+      renderSourceList(sources, note.sourceIds);
+      body.append(element("p", { text: note.text }), sources);
+      details.append(element("summary", { text: note.title }), body);
+      return details;
+    }),
+  );
+}
+
+function renderClassification() {
+  const groups = filterClassification(state.query, state.classificationGroup);
+  const branches = groups.reduce((total, group) => total + group.rows.length, 0);
+  setText("classification-status", `${branches} ${branches === 1 ? "rama" : "ramas"} en ${groups.length} ${groups.length === 1 ? "grupo" : "grupos"}. La búsqueda muestra cada rama completa para conservar el contexto.`);
+  toggleEmpty("classification-empty", branches);
+  document.querySelector("#classification-groups").replaceChildren(...groups.map((group) => {
+    const article = element("article", { className: "classification-group", attrs: { "aria-labelledby": `classification-${group.id}` } });
+    article.append(element("h3", { id: `classification-${group.id}`, text: group.title }));
+    for (const row of group.rows) {
+      const branch = element("div", { className: "classification-row", attrs: { "data-classification-row": row.id } });
+      const criteria = element("div", { className: "classification-criteria" });
+      criteria.append(element("p", { text: row.setting }), element("h4", { text: row.test }));
+      const content = element("div", { className: "classification-content" });
+      const taxa = element("ul", { className: "classification-taxa", attrs: { "aria-label": "Microorganismos" } });
+      taxa.append(...row.taxa.map((name) => element("li", { text: name })));
+      content.append(taxa);
+      if (row.note) content.append(element("p", { className: "classification-note", text: row.note }));
+      if (row.organismIds.length) {
+        const links = element("div", { className: "classification-links" });
+        links.append(element("span", { text: "Fichas relacionadas:" }));
+        for (const id of row.organismIds) {
+          const organism = findDetailItem("organism", id);
+          if (!organism) continue;
+          const button = element("button", { className: "lane-chip", text: organism.short, attrs: { type: "button", "aria-label": `Abrir ficha relacionada: ${organism.name}` } });
+          button.addEventListener("click", () => openDetail(organism, "organism"));
+          links.append(button);
+        }
+        content.append(links);
+      }
+      branch.append(criteria, content);
+      article.append(branch);
+    }
+    const sourceDetails = element("details", { className: "source-details" });
+    const sourceList = element("ul", { className: "source-list" });
+    renderSourceList(sourceList, [...new Set(["classification-image", ...group.rows.flatMap((row) => row.sourceIds)])], true);
+    sourceDetails.append(element("summary", { text: "Fuentes de estas ramas" }), sourceList);
+    article.append(sourceDetails);
+    return article;
+  }));
 }
 
 function replaceGrid(id, children) {

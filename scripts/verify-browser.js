@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { ANTIBIOTICS, MECHANISMS, ORGANISMS } from "../src/catalog.js";
+import { ANTIBIOTICS, MECHANISMS, ORGANISMS, SECTIONS } from "../src/catalog.js";
+import { CLASSIFICATION } from "../src/classification.js";
 import { AUDITED_SCENARIOS, resolveScenario } from "../src/rules.js";
 
 // Recibe una Page de Playwright y una URL HTTP o file://; sin dependencias de producción.
@@ -8,9 +9,10 @@ export async function verifyBrowser(page, baseUrl) {
   const onError = (error) => errors.push(error.message);
   page.on("pageerror", onError);
   const navigate = async (hash = "") => {
+    // Aísla cada arranque de los eventos pendientes de la visita anterior.
+    // Los cambios de fragmento dentro del documento se prueban aparte.
+    await page.goto("about:blank");
     await page.goto(`${baseUrl.split("#")[0]}#${hash}`);
-    // Fuerza también el arranque para navegación que solo cambia el fragmento.
-    await page.reload();
   };
   const checkUnavailable = async () => {
     assert.equal(await page.locator("#scenario-headline").innerText(), "Ruta no disponible");
@@ -114,6 +116,32 @@ export async function verifyBrowser(page, baseUrl) {
     assert.equal(await page.locator("#antibiotic-grid .pokedex-card").count(), ANTIBIOTICS.length);
     await page.locator("#global-search").fill("");
 
+    await page.locator("#global-search").fill("Veillonella");
+    await page.locator(".search-classification-link").click();
+    assert.equal(await page.locator(".section.active").getAttribute("id"), "classification");
+    assert.equal(await page.locator("#classification-search").inputValue(), "Veillonella");
+    assert.equal(await page.locator(".classification-row").count(), 1);
+    assert.match(await page.locator(".classification-row").innerText(), /Anaerobios/);
+    await page.locator("#classification-group").selectOption("positive-cocci");
+    assert.equal(await page.locator("#classification-empty").isVisible(), true);
+    await page.locator("#classification-search").fill("coagulasa");
+    assert.equal(await page.locator("#global-search").inputValue(), "coagulasa");
+    assert.equal(await page.locator(".classification-row").count(), 2);
+    await page.locator("[data-classification-row='coagulase-positive'] button").click();
+    assert.equal(await page.locator("#detail-title").innerText(), "Staphylococcus aureus");
+    assert.match(page.url(), /view=classification/);
+    await page.reload();
+    assert.equal(await page.locator("#detail-title").innerText(), "Staphylococcus aureus");
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator(".classification-group").count(), CLASSIFICATION.length);
+    assert.equal(await page.locator(".classification-row").count(), CLASSIFICATION.flatMap((group) => group.rows).length);
+    for (const group of CLASSIFICATION) {
+      await page.locator("#classification-group").selectOption(group.id);
+      assert.equal(await page.locator(".classification-group").count(), 1);
+      assert.equal(await page.locator(".classification-row").count(), group.rows.length);
+    }
+    await page.locator("#classification-group").selectOption("all");
+
     let details = 0;
     for (const section of ["atlas", "antibiotics", "mechanisms"]) {
       await page.locator(`[aria-controls='${section}']`).click();
@@ -168,7 +196,7 @@ export async function verifyBrowser(page, baseUrl) {
 
     for (const width of [320, 375, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const section of ["atlas", "antibiotics", "mechanisms", "matrix", "wizard", "cases", "deep"]) {
+      for (const { id: section } of SECTIONS) {
         await page.locator(`[aria-controls='${section}']`).click();
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${section} a ${width}px`);
       }
@@ -178,7 +206,7 @@ export async function verifyBrowser(page, baseUrl) {
     await page.reload();
     assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
     assert.deepEqual(errors, []);
-    return { protocol: baseUrl.split(":")[0], routes: AUDITED_SCENARIOS.length, details, quinolones: 3, viewports: 4, errors };
+    return { protocol: baseUrl.split(":")[0], routes: AUDITED_SCENARIOS.length, details, classificationBranches: CLASSIFICATION.flatMap((group) => group.rows).length, quinolones: 3, viewports: 4, errors };
   } finally {
     page.off("pageerror", onError);
   }
